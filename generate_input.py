@@ -1,0 +1,241 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import re
+from os import listdir
+
+# Reading par.txt
+
+par = {}
+par_file = 'par.txt'
+
+with open(par_file) as f:
+    for line in f:
+        (key, val) = line.split()
+        par[key] = float(val)
+
+
+atom_types = 1
+bond_types = 1
+
+beadType = atom_types
+
+if par['nsolvent'] > 0:
+    atom_types += 1
+    solventType = atom_types
+
+if par['npatch'] > 0:
+    atom_types += 1
+    bond_types += 2
+    patchType = atom_types
+
+if par['ncolloids'] > 0:
+    atom_types += 1
+    colloidType = atom_types
+
+
+f = open("in.polymers", "w+")
+
+f.write("######################\n#   Initialization   #\n######################\n\n")
+	  
+f.write("units lj\n")
+f.write("atom_style bond\n")
+f.write("special_bonds fene\n") #Per non contare due volte il LJ fra atomi legati
+f.write("boundary p p p\n")
+f.write("comm_modify mode single cutoff 5.0 vel yes")   #! Da capire meglio per mpi e bond fra patch
+
+f.write("\n")
+
+f.write("#######################\n#   Atom definition   #\n#######################\n\n")
+
+
+if int(par['restart']) == 1:  
+    f.write("read_restart polymers.restart remap\n")
+    f.write("\n")
+else:
+    f.write("read_data polymers.dat extra/special/per/atom 100\n") # da modificare per prendere parametri esterni
+    f.write("\n")
+
+f.write("################\n#   Settings   #\n################\n\n")
+
+#f.write("neighbor 0.8 bin\n") #! Da capire se sono meglio di quelle di default
+#f.write("neigh_modify check yes\n\n")
+
+f.write(f"pair_style lj/cut {2**(1./6.) * par['sigma']}\n")
+f.write(f"pair_modify shift yes\n")
+
+#Beads-beads
+f.write(f"pair_coeff {beadType} {beadType} {par['eps']} {par['sigma']} {2**(1./6.) * par['sigma']}\n")   # type1 type2 epsilon sigma cutoff #! WCA
+
+if par['nsolvent'] > 0:
+    #Bead-solvente
+    #! Epsilon bead solvente cambia?
+    sigma_bead_solv = 0.5 * (par['sigma'] + par['sigma_solvent'])
+    f.write(f"pair_coeff {beadType} {solventType} {par['eps']} {sigma_bead_solv} {2**(1./6.) * sigma_bead_solv}\n")   # type1 type2 epsilon sigma cutoff #! WCA
+    
+    #Solvente-solvente
+    f.write(f"pair_coeff {solventType} {solventType} {par['eps_ss']} {par['sigma_solvent']} {2.5 * par['sigma_solvent']}\n") #! LJ
+
+if par['npatch'] > 0:
+    #Bead-patch
+    sigma_bead_patch = 0.5 * (par['sigma'] + par['sigma_patch'])
+    f.write(f"pair_coeff {beadType} {patchType} {par['eps']} {sigma_bead_patch} {2**(1./6.) * sigma_bead_patch}\n")   # type1 type2 epsilon sigma cutoff #! WCA
+    
+    #Patch-patch
+    f.write(f"pair_coeff {patchType} {patchType} {par['eps']} {par['sigma_patch']} {2**(1./6.) * par['sigma_patch']}\n")   # type1 type2 epsilon sigma cutoff #! WCA
+
+    if par['nsolvent'] > 0:
+        #Patch-solvente
+        sigma_patch_solv = 0.5 * (par['sigma_patch'] + par['sigma_solvent'])
+        f.write(f"pair_coeff {patchType} {solventType} {par['eps']} {sigma_patch_solv} {2**(1./6.) * sigma_patch_solv}\n")   # type1 type2 epsilon sigma cutoff #! WCA
+
+
+if par['ncolloids'] > 0:
+    #Bead-colloide
+    sigma_bead_coll = 0.5 * (par['sigma'] + par['sigma_colloids'])
+    f.write(f"pair_coeff {beadType} {colloidType} {par['eps_bc']} {sigma_bead_coll} {2.5 * sigma_bead_coll}\n")   #! LJ
+    
+    #Colloide-colloide
+    f.write(f"pair_coeff {colloidType} {colloidType} {par['eps']} {par['sigma_colloids']} {2**(1./6.) * par['sigma_colloids']}\n")   # type1 type2 epsilon sigma #! WCA
+
+    if par['nsolvent'] > 0:
+        #Colloide-solvente
+        sigma_coll_solv = 0.5 * (par['sigma_colloids'] + par['sigma_solvent'])
+        f.write(f"pair_coeff {colloidType} {solventType} {par['eps_cs']} {sigma_coll_solv} {2.5 * sigma_coll_solv}\n")   #! LJ
+ 
+    if par['npatch'] > 0:
+        #Colloide-patch
+        sigma_coll_patch = 0.5 * (par['sigma_colloids'] + par['sigma_patch'])
+        f.write(f"pair_coeff {colloidType} {patchType} {par['eps']} {sigma_coll_patch} {2**(1./6.) * sigma_coll_patch}\n")   # type1 type2 epsilon sigma cutoff #! WCA
+    
+
+f.write("\n")
+
+f.write("neigh_modify one 10000\n")
+
+f.write("bond_style fene\n")
+
+#Bond fra beads
+f.write(f"bond_coeff 1 30.0 {1.5 * par['sigma']} {par['eps']} {par['sigma']}\n") # tipo bond   forza K DistanzaMax eps=0 (no LJ) sigma
+
+if par['npatch'] > 0:
+    #Bond fra patch e bead
+    f.write(f"bond_coeff 2 30.0 {1.5 * par['sigma']} {par['eps']} {par['sigma']}\n") # tipo bond   forza K DistanzaMax eps=0 (no LJ) sigma
+
+    #Bond per crosslink fra polimeri
+    f.write(f"bond_coeff 3 30.0 {1.5 * par['sigma']} {par['eps']} {par['sigma']}\n") # tipo bond   forza K DistanzaMax eps=0 (no LJ) sigma
+
+
+#f.write("bond_style harmonic/shift\n")
+#f.write("bond_coeff 1 4.59304 1.47385 1.03094\n") #<bond type> <U_min> <r_0> <r_c>
+f.write("\n")	 
+
+
+f.write("fix 1 all nve\n")                             #impongo NVE che unito a Langevin da NVT
+f.write("fix 2 all langevin 1.0 1.0 1.0 16113\n")      #impongo langevin a tutti con Tstart 3, Tfin 1, dampening 1, seed a caso
+if par['press/berendsen'] > 0:
+    f.write(f"fix 3 all press/berendsen iso {par['press_in']} {par['press_fin']} 1000.0\n")
+
+#f.write("velocity all create 50.0 66254 rot yes dist gaussian\n")
+
+f.write("#####################\n#   Calculations    #\n#####################\n")
+f.write("\n")
+
+file_number = 0
+
+if int(par['restart']) == 1:
+        file_number = int(re.search("[0-9]", [i for i in listdir("gyration") if "gyr" in i][0]).group()) + 1
+
+#Rg di ogni polimero
+
+'''
+f.write("compute molchunk all chunk/atom molecule\n") #Definisco i chunk in base al molID
+
+f.write("compute rg all gyration/chunk molchunk\n")
+f.write("compute com all com/chunk molchunk\n")
+
+f.write("fix save_rg all ave/time 100 1 100 c_rg file gyration/gyration.txt mode vector\n")
+f.write("fix save_com all ave/time 100 1 100 c_com[*] file com/com.txt mode vector\n")
+'''
+
+#! Compute per ora non li calcolo
+
+#f.write("compute gyrb all gyration\n")
+#f.write(f"fix gyration all ave/time 1000 1 1000 c_gyrb file gyration/gyr_{file_number}.txt start 0\n\n")
+
+#f.write("compute comb all com\n")
+#f.write(f"fix com all ave/time 1000 1 1000 c_comb[*] file com/com_{file_number}.txt start 0\n\n")
+
+'''
+f.write("##Group polymers\n")
+
+for p in range(0, 1):
+
+    #primo atomo del polimero
+    ID_start = int(1 + p * (par['ns'] + par['npatch']))
+    ID_end = int(1 + (p + 1) * (par['ns'] + par['npatch']))
+
+    f.write(f"group polymer{p} id {ID_start}:{ID_end}\n")
+    f.write(f"compute gyrb{p} polymer{p} gyration\n")
+    f.write(f"fix gyration polymer{p} ave/time 1000 1 1000 c_gyrb{p} file gyration/gyr_{file_number}_{p}.txt start 0\n\n")
+    
+    #f.write(f"compute com{p} polymer{p} com\n")
+    #f.write(f"fix com polymer{p} ave/time 1000 50 500000 c_com{p} file com/com_{file_number}_{p}.txt start 500000\n\n")
+'''
+#!compute com0 polymer0 com
+
+'''
+# Rg backbone
+f.write("group bbone id {0}:{1}\n".format(np.min(bbone_ids), np.max(bbone_ids)))
+f.write("compute gyrb bbone gyration\n")
+f.write("fix gyration bbone ave/time 1000 50 500000 c_gyrb file gyration/gyr_bbone_{}.txt start 500000\n".format(file_number)) # da modficare per prendere parametri esterni
+f.write("\n")
+'''
+
+# Rg complete
+#f.write("compute gyr all gyration\n")
+#f.write("fix gyration1 all ave/time 1000 50 50000 c_gyr file gyration/gyr_all_{}.txt start 50000\n".format(file_number))
+#f.write("\n")
+
+'''
+# End-to-end
+f.write("group bbone_extremes id {0} {1}\n".format(np.min(bbone_ids), np.max(bbone_ids)))
+f.write("\n")
+'''
+
+
+f.write("###########\n# Dumping #\n###########\n")
+f.write("\n")
+
+f.write("restart 250000 polymers.restart polymers2.restart\n")
+f.write("\n")
+#f.write("dump config all xyz 100000 configurations/polymers_*.xyz\n") #id type x y z\n")#.format(file_number)) # da modficare per prendere parametri esterni
+f.write(f"dump config all custom {int(par['dumpsteps'])} configurations/polymers_{file_number}.lammpstrj id mol type x y z\n") # da modficare per prendere parametri esterni
+f.write("\n")
+#f.write("dump endtoend bbone_extremes xyz 500000 gyration/bbone_extremes_*.lammpstrj\n")# id type x y z\n".format(file_number))
+#f.write("\n")
+
+f.write("##########################\n#   Running simulation   #\n##########################\n")
+f.write("\n")
+f.write("timestep 0.001\n") # da modificare per prendere parametri esterni
+f.write(f"thermo {int(par['thermosteps'])}\n") # da modificare per prendere parametri esterni
+f.write("thermo_style custom step temp etotal ke pe epair emol press vol\n") # da modificare per prendere parametri esterni
+#!thermo_style custom step temp etotal ke pe epair emol press vol c_com0[1] c_com0[2] c_com0[3]
+f.write("thermo_modify flush yes\n")
+
+'''
+f.write("run 100000\n")
+
+#*Creazione bond durante la simulazione fra particelle itype e jtype:
+#fix nomeFix groupID bond/create Nevery itype jtype Rmin bondtype prob p seed iparam maxbonds newitype jparam maxbonds newjtype
+
+#f.write(f"fix createBonds all bond/create 1 2 2 {1 * sigma} 1 prob 0.5 12345 iparam 1 2 jparam 1 2\n")
+if par['npatch'] > 0:
+    f.write(f"fix createBonds all bond/create 1 {patchType} {patchType} {1 * par['sigma']} 3 iparam 1 2 jparam 1 2\n")
+
+'''
+
+
+f.write(f"run {int(par['totsteps'])}\n")
+
+f.close()
