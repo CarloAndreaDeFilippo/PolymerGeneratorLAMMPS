@@ -2,26 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import errno
 import math as m
-from os import makedirs, path, getcwd
 from enum import Enum, auto
-
-
-#Directories che ci servono
-
-dir_list = ["configurations", "gyration",  "com"]
-
-main_dir = getcwd() + '/'
-
-for i in dir_list:
-
-    try:
-        makedirs(main_dir + i, 0o777)
-    except OSError as exc:
-        if exc.errno == errno.EEXIST and path.isdir(main_dir + i):
-            pass
-        else: raise
 
 
 class SphereType(Enum):
@@ -120,38 +102,37 @@ f.write(f"0.0 {Lbox[0]} xlo xhi\n0.0 {Lbox[1]} ylo yhi\n0.0 {Lbox[2]} zlo zhi\n\
 f.write(f"Masses\n\n{beadType} 1\n")
 
 if par['nsolvent'] > 0:
-    f.write(f"{solventType} 0.5\n")  #!Massa solvente 0.5
+    f.write(f"{solventType} 0.5\n")  #!Solvent mass 0.5 #TODO: read from par file
 
 if par['npatch'] > 0:
-    f.write(f"{patchType} 1\n")   #!Massa patch 1
+    f.write(f"{patchType} 1\n")   #!Patch mass 1 #TODO: read from par file
 
 if par['ncolloids'] > 0:
-    f.write(f"{colloidType} 1\n")     #! Massa colloide 1
+    f.write(f"{colloidType} 1\n")     #!Colloid mass 1 #TODO: read from par file
 
 f.write("\n")
 
 f.write("Atoms\n")
 f.write("# atom-ID\tmol-ID\tatom-type\tx\ty\tz\n")
 
-# Generazione posizioni polimeri
+# -----------> POLYMERS <------------- #
 
 coordsFirstBeads = []
-
 
 minPolymerDist = 3 * par['sigma']
 distBetweenBeads = 1 * par['sigma']
 
-patchyBeadsIDs = []         #lista tuple AtomID Bead + Patch per definire i bond
+patchyBeadsIDs = []         #List of tuples AtomID Bead + Patch to keep track of the IDs for the bonds
 
 for p in range(0, int(par['npol'])):
 
     print(f'Polymer #{p+1}')
-    #primo atomo del polimero
+    #First bead of the polymers
     ID_start = int(1 + p * (par['ns'] + par['npatch']))
 
     molID = int(1 + p)
 
-    #Coord primo bead + distanza minima fra polimeri
+    #Random coordinate of first bead (not overlapping with other polymers)
     while True:
 
         coordFirstBead = [np.random.random() * par['lbox_x'],
@@ -185,7 +166,7 @@ for p in range(0, int(par['npol'])):
 
     coordsFirstBeads.append(coordFirstBead)
 
-    patchyBeads = []        #Lista degli indici dei patchy beads
+    patchyBeads = []        #List of the indexes of patch beads
 
     for i in range(int(par['npatch'])):
 
@@ -198,22 +179,22 @@ for p in range(0, int(par['npol'])):
                 patchyBeads.append(patchyParticle)
                 break
     
-    #Sort della lista per avere i molID corretti
+    #Sort the list to have the correct molID
     patchyBeads.sort()
 
 
-    #Metto sfere dure
+    #Place the beads
     for npart in range(int(par['ns'])):
 
         coord = coordFirstBead.copy()
-        coord[2] += distBetweenBeads * npart   #! Definire la distanza fra beads iniziale in funzione del potenziale
+        coord[2] += distBetweenBeads * npart   #TODO: Define the distance between the beads depending on the chosen potential
         
         spheres.append(Sphere(par['sigma'], coord, SphereType.BEAD))
 
         f.write(f"{ID_start + npart} {molID} {beadType} {coord[0]} {coord[1]} {coord[2]}\n")
 
     
-    #Metto patch
+    #Place the patches
     patchID = int(ID_start + par['ns'])
 
 
@@ -222,16 +203,17 @@ for p in range(0, int(par['npol'])):
         patchCoord = coordFirstBead.copy()
         patchCoord[2] += distBetweenBeads * nparticle
 
+        #Random position of the patch around the bead
         theta = np.random.rand() * 2. * m.pi
 
-        patchCoord[0] += m.cos(theta) * 0.5 * (par['sigma'] + par['sigma_patch'])        #! Da scegliere dove piazzare la patch
+        patchCoord[0] += m.cos(theta) * 0.5 * (par['sigma'] + par['sigma_patch'])
         patchCoord[1] += m.sin(theta) * 0.5 * (par['sigma'] + par['sigma_patch'])
 
         spheres.append(Sphere(par['sigma_patch'], patchCoord, SphereType.PATCH))
 
         f.write(f"{patchID} {molID} {patchType} {patchCoord[0]} {patchCoord[1]} {patchCoord[2]}\n")
 
-        #Salvo la tupla degli AtomID del Bead e della patch per il bond
+        #Save the tuple AtomID of the bead + patch for the bond
 
         patchyBeadsIDs.append((ID_start + nparticle, patchID))
 
@@ -240,7 +222,7 @@ for p in range(0, int(par['npol'])):
 
 
 
-# -----------> COLLOIDI <------------- #
+# -----------> COLLOIDS <------------- #
 
 
 if par['ncolloids'] > 0:
@@ -279,7 +261,7 @@ if par['ncolloids'] > 0:
         spheres.append(colloid)
 
 
-# -------------> SOLVENTE <--------------------------- #
+# -------------> SOLVENT <--------------------------- #
 
 if par['nsolvent'] > 0:
 
@@ -321,7 +303,7 @@ if par['nsolvent'] > 0:
 f.write("\n")
 
 
-#######VELOCITÀ
+# -----------> VELOCITIES <------------- # #*It is possible to specify the atoms velocities
 
 #f.write("Velocities\n\n")
 
@@ -329,15 +311,18 @@ f.write("\n")
 
 #f.write("\n")
 
-# Generazione bond IDs
+
+# -----------> BONDS <------------- #
+
+# Bond IDs
 f.write("Bonds\n#bond-ID\tbond-type\tfirst-atom\tsecond-atom\n")
 
 ID_bond = 1
 
-#Bonds fra Beads
+#Bonds between the beads
 for p in range(0, int(par['npol'])):
 
-    #primo bead del polimero
+    #First bead of the polymer
     ID_start = int(1 + p * (par['ns'] + par['npatch']))
 
     for i in range(int(par['ns'] - 1)):
@@ -349,7 +334,7 @@ for p in range(0, int(par['npol'])):
         ID_bond += 1
 
 
-#Bonds fra Bead e patch
+#Bonds between the bead and the patch
 for BeadID,PatchID in patchyBeadsIDs:
 
     f.write(f"{ID_bond} 2 {BeadID} {PatchID}\n")
@@ -358,7 +343,7 @@ for BeadID,PatchID in patchyBeadsIDs:
 
 f.close()
 
-#! --------------> file xyz per vmd <----------------
+# -----------> .xyz for VMD visualization <------------- #
 
 f = open("polymers.xyz", "w+")
 

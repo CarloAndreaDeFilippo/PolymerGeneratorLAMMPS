@@ -3,6 +3,8 @@
 
 import re
 from os import listdir
+from os import makedirs, path, getcwd
+import errno
 
 # Reading par.txt
 
@@ -13,6 +15,22 @@ with open(par_file) as f:
     for line in f:
         (key, val) = line.split()
         par[key] = float(val)
+
+
+#Creation of the necessary directories
+
+dir_list = ["configurations"]   
+
+main_dir = getcwd() + '/'
+
+for i in dir_list:
+
+    try:
+        makedirs(main_dir + i, 0o777)
+    except OSError as exc:
+        if exc.errno == errno.EEXIST and path.isdir(main_dir + i):
+            pass
+        else: raise
 
 
 atom_types = 1
@@ -40,9 +58,9 @@ f.write("######################\n#   Initialization   #\n######################\
 	  
 f.write("units lj\n")
 f.write("atom_style bond\n")
-f.write("special_bonds fene\n") #Per non contare due volte il LJ fra atomi legati
+f.write("special_bonds fene\n") #To not count the LJ potential twice for bonded beads
 f.write("boundary p p p\n")
-f.write("comm_modify mode single cutoff 5.0 vel yes")   #! Da capire meglio per mpi e bond fra patch
+f.write("comm_modify mode single cutoff 5.0 vel yes")   #For thread communication (mpi)
 
 f.write("\n")
 
@@ -58,85 +76,93 @@ else:
 
 f.write("################\n#   Settings   #\n################\n\n")
 
-#f.write("neighbor 0.8 bin\n") #! Da capire se sono meglio di quelle di default
-#f.write("neigh_modify check yes\n\n")
+#*Spheres setup
 
+#Cut and shifted LJ potential at the minimum (mimic WCA potential)
 f.write(f"pair_style lj/cut {2**(1./6.) * par['sigma']}\n")
 f.write(f"pair_modify shift yes\n")
 
-#Beads-beads
-f.write(f"pair_coeff {beadType} {beadType} {par['eps']} {par['sigma']} {2**(1./6.) * par['sigma']}\n")   # type1 type2 epsilon sigma cutoff #! WCA
+#LJ interaction: type1 type2 epsilon sigma cutoff
+
+#Beads-beads interaction
+f.write(f"pair_coeff {beadType} {beadType} {par['eps']} {par['sigma']} {2**(1./6.) * par['sigma']}\n")   #! WCA
 
 if par['nsolvent'] > 0:
-    #Bead-solvente
-    #! Epsilon bead solvente cambia?
+    #Bead-solvent interaction
     sigma_bead_solv = 0.5 * (par['sigma'] + par['sigma_solvent'])
-    f.write(f"pair_coeff {beadType} {solventType} {par['eps']} {sigma_bead_solv} {2**(1./6.) * sigma_bead_solv}\n")   # type1 type2 epsilon sigma cutoff #! WCA
+    f.write(f"pair_coeff {beadType} {solventType} {par['eps']} {sigma_bead_solv} {2**(1./6.) * sigma_bead_solv}\n")   #! WCA
     
-    #Solvente-solvente
-    f.write(f"pair_coeff {solventType} {solventType} {par['eps_ss']} {par['sigma_solvent']} {2.5 * par['sigma_solvent']}\n") #! LJ
+    #Solvent-solvent interaction
+    f.write(f"pair_coeff {solventType} {solventType} {par['eps_ss']} {par['sigma_solvent']} {2.5 * par['sigma_solvent']}\n") #! LJ cut at 2.5 sigma_solvent
 
 if par['npatch'] > 0:
-    #Bead-patch
+    #Bead-patch interaction
     sigma_bead_patch = 0.5 * (par['sigma'] + par['sigma_patch'])
-    f.write(f"pair_coeff {beadType} {patchType} {par['eps']} {sigma_bead_patch} {2**(1./6.) * sigma_bead_patch}\n")   # type1 type2 epsilon sigma cutoff #! WCA
+    f.write(f"pair_coeff {beadType} {patchType} {par['eps']} {sigma_bead_patch} {2**(1./6.) * sigma_bead_patch}\n")   #! WCA
     
-    #Patch-patch
-    f.write(f"pair_coeff {patchType} {patchType} {par['eps']} {par['sigma_patch']} {2**(1./6.) * par['sigma_patch']}\n")   # type1 type2 epsilon sigma cutoff #! WCA
+    #Patch-patch interaction
+    f.write(f"pair_coeff {patchType} {patchType} {par['eps']} {par['sigma_patch']} {2**(1./6.) * par['sigma_patch']}\n")   #! WCA
 
     if par['nsolvent'] > 0:
-        #Patch-solvente
+        #Patch-solvent
         sigma_patch_solv = 0.5 * (par['sigma_patch'] + par['sigma_solvent'])
-        f.write(f"pair_coeff {patchType} {solventType} {par['eps']} {sigma_patch_solv} {2**(1./6.) * sigma_patch_solv}\n")   # type1 type2 epsilon sigma cutoff #! WCA
+        f.write(f"pair_coeff {patchType} {solventType} {par['eps']} {sigma_patch_solv} {2**(1./6.) * sigma_patch_solv}\n")   #! WCA
 
 
 if par['ncolloids'] > 0:
-    #Bead-colloide
+    #Bead-colloid interaction
     sigma_bead_coll = 0.5 * (par['sigma'] + par['sigma_colloids'])
-    f.write(f"pair_coeff {beadType} {colloidType} {par['eps_bc']} {sigma_bead_coll} {2.5 * sigma_bead_coll}\n")   #! LJ
+    f.write(f"pair_coeff {beadType} {colloidType} {par['eps_bc']} {sigma_bead_coll} {2.5 * sigma_bead_coll}\n")   #! LJ cut at 2.5 sigma_bead_coll
     
-    #Colloide-colloide
-    f.write(f"pair_coeff {colloidType} {colloidType} {par['eps']} {par['sigma_colloids']} {2**(1./6.) * par['sigma_colloids']}\n")   # type1 type2 epsilon sigma #! WCA
+    #Colloid-colloid interaction
+    f.write(f"pair_coeff {colloidType} {colloidType} {par['eps']} {par['sigma_colloids']} {2**(1./6.) * par['sigma_colloids']}\n")    #! WCA
 
     if par['nsolvent'] > 0:
-        #Colloide-solvente
+        #Colloid-solvent interaction
         sigma_coll_solv = 0.5 * (par['sigma_colloids'] + par['sigma_solvent'])
-        f.write(f"pair_coeff {colloidType} {solventType} {par['eps_cs']} {sigma_coll_solv} {2.5 * sigma_coll_solv}\n")   #! LJ
+        f.write(f"pair_coeff {colloidType} {solventType} {par['eps_cs']} {sigma_coll_solv} {2.5 * sigma_coll_solv}\n")   #! LJ cut at 2.5 sigma_coll_solv
  
     if par['npatch'] > 0:
-        #Colloide-patch
+        #Colloid-patch interaction
         sigma_coll_patch = 0.5 * (par['sigma_colloids'] + par['sigma_patch'])
-        f.write(f"pair_coeff {colloidType} {patchType} {par['eps']} {sigma_coll_patch} {2**(1./6.) * sigma_coll_patch}\n")   # type1 type2 epsilon sigma cutoff #! WCA
+        f.write(f"pair_coeff {colloidType} {patchType} {par['eps']} {sigma_coll_patch} {2**(1./6.) * sigma_coll_patch}\n")   #! WCA
     
 
 f.write("\n")
+
+#*Bonds setup
 
 f.write("neigh_modify one 10000\n")
 
 f.write("bond_style fene\n")
 
-#Bond fra beads
-f.write(f"bond_coeff 1 30.0 {1.5 * par['sigma']} {par['eps']} {par['sigma']}\n") # tipo bond   forza K DistanzaMax eps=0 (no LJ) sigma
+#FENE bond: bondID Kparameter MaxDistance LJeps sigma
+
+#Bond between beads
+f.write(f"bond_coeff 1 30.0 {1.5 * par['sigma']} {par['eps']} {par['sigma']}\n") 
 
 if par['npatch'] > 0:
-    #Bond fra patch e bead
-    f.write(f"bond_coeff 2 30.0 {1.5 * par['sigma']} {par['eps']} {par['sigma']}\n") # tipo bond   forza K DistanzaMax eps=0 (no LJ) sigma
+    #Bond between bead and patch
+    sigma_bead_patch = 0.5 * (par['sigma'] + par['sigma_patch'])
+    f.write(f"bond_coeff 2 30.0 {1.5 * sigma_bead_patch} {par['eps']} {sigma_bead_patch}\n")
 
-    #Bond per crosslink fra polimeri
-    f.write(f"bond_coeff 3 30.0 {1.5 * par['sigma']} {par['eps']} {par['sigma']}\n") # tipo bond   forza K DistanzaMax eps=0 (no LJ) sigma
+    #Bond for the crosslink between patches
+    f.write(f"bond_coeff 3 30.0 {1.5 * par['sigma_patch']} {par['eps']} {par['sigma_patch']}\n")
 
-
-#f.write("bond_style harmonic/shift\n")
-#f.write("bond_coeff 1 4.59304 1.47385 1.03094\n") #<bond type> <U_min> <r_0> <r_c>
 f.write("\n")	 
 
 
-f.write("fix 1 all nve\n")                             #impongo NVE che unito a Langevin da NVT
-f.write("fix 2 all langevin 1.0 1.0 1.0 16113\n")      #impongo langevin a tutti con Tstart 3, Tfin 1, dampening 1, seed a caso
-if par['press/berendsen'] > 0:
-    f.write(f"fix 3 all press/berendsen iso {par['press_in']} {par['press_fin']} 1000.0\n")
+#*Simulation environment setup
 
-#f.write("velocity all create 50.0 66254 rot yes dist gaussian\n")
+f.write("fix 1 all nve\n")                             #NVE integrator (combined with Langevin thermostat gives NVT)
+f.write("fix 2 all langevin 1.0 1.0 1.0 16113\n")      #Langevin thermostat (Tstart Tfin dampening seed)
+
+if par['press/berendsen'] > 0:
+    f.write(f"fix 3 all press/berendsen iso {par['press_in']} {par['press_fin']} 1000.0\n") #If NPT with Berendsen barostat
+
+#f.write("velocity all create 50.0 66254 rot yes dist gaussian\n") #Random initial velocities
+
+
 
 f.write("#####################\n#   Calculations    #\n#####################\n")
 f.write("\n")
@@ -146,7 +172,8 @@ file_number = 0
 if int(par['restart']) == 1:
         file_number = int(re.search("[0-9]", [i for i in listdir("gyration") if "gyr" in i][0]).group()) + 1
 
-#Rg di ogni polimero
+
+#TODO: fix the computation of gyration radius for the polymers
 
 '''
 f.write("compute molchunk all chunk/atom molecule\n") #Definisco i chunk in base al molID
@@ -157,8 +184,6 @@ f.write("compute com all com/chunk molchunk\n")
 f.write("fix save_rg all ave/time 100 1 100 c_rg file gyration/gyration.txt mode vector\n")
 f.write("fix save_com all ave/time 100 1 100 c_com[*] file com/com.txt mode vector\n")
 '''
-
-#! Compute per ora non li calcolo
 
 #f.write("compute gyrb all gyration\n")
 #f.write(f"fix gyration all ave/time 1000 1 1000 c_gyrb file gyration/gyr_{file_number}.txt start 0\n\n")
@@ -207,34 +232,27 @@ f.write("\n")
 f.write("###########\n# Dumping #\n###########\n")
 f.write("\n")
 
-f.write("restart 250000 polymers.restart polymers2.restart\n")
+f.write("restart 250000 polymers.restart polymers2.restart\n")  #LAMMPS restart files #TODO: read from parameter file the restart frequency
 f.write("\n")
-#f.write("dump config all xyz 100000 configurations/polymers_*.xyz\n") #id type x y z\n")#.format(file_number)) # da modficare per prendere parametri esterni
-f.write(f"dump config all custom {int(par['dumpsteps'])} configurations/polymers_{file_number}.lammpstrj id mol type x y z\n") # da modficare per prendere parametri esterni
+f.write(f"dump config all custom {int(par['dumpsteps'])} configurations/polymers_{file_number}.lammpstrj id mol type x y z\n")
 f.write("\n")
 #f.write("dump endtoend bbone_extremes xyz 500000 gyration/bbone_extremes_*.lammpstrj\n")# id type x y z\n".format(file_number))
 #f.write("\n")
 
 f.write("##########################\n#   Running simulation   #\n##########################\n")
 f.write("\n")
-f.write("timestep 0.001\n") # da modificare per prendere parametri esterni
-f.write(f"thermo {int(par['thermosteps'])}\n") # da modificare per prendere parametri esterni
-f.write("thermo_style custom step temp etotal ke pe epair emol press vol\n") # da modificare per prendere parametri esterni
+f.write("timestep 0.001\n") #Timestep of the integrator 
+f.write(f"thermo {int(par['thermosteps'])}\n")
+f.write("thermo_style custom step temp etotal ke pe epair emol press vol\n")
 #!thermo_style custom step temp etotal ke pe epair emol press vol c_com0[1] c_com0[2] c_com0[3]
 f.write("thermo_modify flush yes\n")
 
-'''
-f.write("run 100000\n")
+#*Crosslink: bond creation during the simulation between patches
+#fix fixName groupID bond/create Nevery itype jtype Rmin bondtype prob p seed iparam maxbonds newitype jparam maxbonds newjtype
 
-#*Creazione bond durante la simulazione fra particelle itype e jtype:
-#fix nomeFix groupID bond/create Nevery itype jtype Rmin bondtype prob p seed iparam maxbonds newitype jparam maxbonds newjtype
-
-#f.write(f"fix createBonds all bond/create 1 2 2 {1 * sigma} 1 prob 0.5 12345 iparam 1 2 jparam 1 2\n")
-if par['npatch'] > 0:
+#Create the crosslinks if there are patches in the system and the crosslink parameter is set to True (value != 0)
+if par['npatch'] > 0 and par['crosslink'] != 0:
     f.write(f"fix createBonds all bond/create 1 {patchType} {patchType} {1 * par['sigma']} 3 iparam 1 2 jparam 1 2\n")
-
-'''
-
 
 f.write(f"run {int(par['totsteps'])}\n")
 

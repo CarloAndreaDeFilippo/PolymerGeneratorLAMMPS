@@ -19,3 +19,4 @@ eps_bc 1
 totsteps 3e7
 dumpsteps 1e3
 thermosteps 1e3
+crosslink 0
