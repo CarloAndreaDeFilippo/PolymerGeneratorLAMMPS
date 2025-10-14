@@ -41,6 +41,85 @@ class Sphere:
         return False
 
 
+class LinkedCellList:
+
+    Lbox = [10., 10., 10.]
+    totAtoms = int(1)
+    maxCellsPerAxis = [int(200), int(200), int(200)]       #Max cells per axis to limit RAM usage
+    minCellWidth = 1.                        #Min cell width (at least max sigma of the spheres in the system)
+    cellsPerAxis = [int(10), int(10), int(10)]
+    cellWidth = [1., 1., 1.]
+    totCells = int(1000)
+    neighboringIndexes = [int(2), int(2), int(2)]   #If the volume is too small to have 3 cells per axis
+
+    headObj = [-1]         #head of the cell (contains first sphere)
+    listObj = [-1]         #list of all the other spheres
+
+    def __init__(self, Lbox=[10., 10., 10.], minCellWidth=1., totAtoms=1):
+
+        self.Lbox = Lbox
+        self.minCellWidth = minCellWidth
+        self.totAtoms = totAtoms
+        self.cellsPerAxis = [int(l / minCellWidth) for l in Lbox]
+        for ax in range(3):
+            self.cellsPerAxis[ax] = int(self.Lbox[ax] / self.minCellWidth)
+            if self.cellsPerAxis[ax] > self.maxCellsPerAxis[ax]: 
+                self.cellsPerAxis[ax] = self.maxCellsPerAxis[ax]
+            self.cellWidth[ax] = self.Lbox[ax] / float(self.cellsPerAxis[ax])
+        
+        self.totCells = int(self.cellsPerAxis[0] * self.cellsPerAxis[1] * self.cellsPerAxis[2])
+
+        self.headObj = [-1]*self.totCells
+        self.listObj = [-1]*self.totAtoms
+
+        for ax in range(3):
+            if self.cellsPerAxis[ax] < 3: 
+                self.neighboringIndexes[ax] = self.cellsPerAxis[ax] - 1
+
+    def calculateObjectCell(self, cm=[0., 0., 0.]) -> list[int]:
+        cellIndex = [0, 0, 0, 0]
+        for ax in range(3):
+            cellIndex[ax] = int((cm[ax] + 0.5 * self.Lbox[ax]) / self.cellWidth[ax])
+        cellIndex[3] = cellIndex[0] + cellIndex[1] * self.cellsPerAxis[0] + cellIndex[2] * self.cellsPerAxis[0] * self.cellsPerAxis[1]
+    
+
+        return cellIndex
+
+    def addObjectToList(self, objID: int, cm=[0., 0., 0.]):
+        cellIndex = self.calculateObjectCell(cm)
+
+        self.listObj[objID] = self.headObj[cellIndex[3]]
+        self.headObj[cellIndex[3]] = objID
+
+
+    def overlapCheck(self, sph : Sphere, spheres : list[Sphere]):
+        objCellIndex = self.calculateObjectCell(sph.cm)
+
+        cellIndex = [0, 0, 0, 0]
+        for kx in range(-1, self.neighboringIndexes[0]):
+            for ky in range(-1, self.neighboringIndexes[1]):
+                for kz in range(-1, self.neighboringIndexes[2]):
+        
+                    cellIndex[0] = objCellIndex[0] + kx
+                    cellIndex[1] = objCellIndex[1] + ky
+                    cellIndex[2] = objCellIndex[2] + kz
+
+                    for ax in range(3):
+                        if cellIndex[ax] >= self.cellsPerAxis[ax]: 
+                            cellIndex[ax] -= self.cellsPerAxis[ax]
+                        elif cellIndex[ax] < 0:
+                            cellIndex[ax] += self.cellsPerAxis[ax]
+                    
+                    cellIndex[3] = cellIndex[0] + cellIndex[1] * self.cellsPerAxis[0] + cellIndex[2] * self.cellsPerAxis[0] * self.cellsPerAxis[1]
+                    cellIndex[3] = self.headObj[int(cellIndex[3])]
+
+                    while cellIndex[3] >= 0 :
+                        if sph.overlap(spheres[cellIndex[3]], self.Lbox):
+                            return True
+                        
+                        cellIndex[3] = self.listObj[cellIndex[3]]
+                    
+        return False
 
 # Reading par.txt
 par = {}
@@ -82,18 +161,25 @@ bond_types = 1
 
 beadType = atom_types
 
+sigmas = [float(par['sigma_bead'])]  #list of spheres "sizes" for linked list
+
 if par['nsolvent'] > 0:
     atom_types += 1
     solventType = atom_types
+    sigmas.append(float(par['sigma_solvent']))
 
 if par['npatch'] > 0:
     atom_types += 1
     bond_types += 2
     patchType = atom_types
+    sigmas.append(float(par['sigma_patch']))
 
 if par['ncolloids'] > 0:
     atom_types += 1
     colloidType = atom_types
+    sigmas.append(float(par['sigma_colloid']))
+
+atomList = LinkedCellList(Lbox, max(sigmas), ntot)
 
 f.write(f"{atom_types} atom types\n{bond_types} bond types\n0 angle types\n0 dihedral types\n0 improper types\n\n")
 
@@ -119,8 +205,12 @@ f.write("# atom-ID\tmol-ID\tatom-type\tx\ty\tz\n")
 
 coordsFirstBeads = []
 
-minPolymerDist = 3 * par['sigma']
-distBetweenBeads = 1 * par['sigma']
+minPolymerDist = par['sigma_bead']
+
+if par['npatch'] > 0:
+    minPolymerDist +=  2. * par['sigma_patch']
+
+distBetweenBeads = 1 * par['sigma_bead'] #TODO: Define the distance between the beads depending on the chosen potential
 
 patchyBeadsIDs = []         #List of tuples AtomID Bead + Patch to keep track of the IDs for the bonds
 
@@ -147,11 +237,11 @@ for p in range(0, int(par['npol'])):
             dist_x = abs(coord[0] - coordFirstBead[0])
             dist_y = abs(coord[1] - coordFirstBead[1])
 
-            if dist_x >= 0.5 * par['lbox_x']:
-                dist_x = dist_x - par['lbox_x']
+            if dist_x >= 0.5 * Lbox[0]:
+                dist_x = dist_x - Lbox[0]
 
-            if dist_y >= 0.5 * par['lbox_y']:
-                dist_y = dist_y - par['lbox_y']
+            if dist_y >= 0.5 * Lbox[1]:
+                dist_y = dist_y - Lbox[1]
 
             distance2DSqrd = m.sqrt(dist_x*dist_x + dist_y*dist_y)
 
@@ -187,9 +277,16 @@ for p in range(0, int(par['npol'])):
     for npart in range(int(par['ns'])):
 
         coord = coordFirstBead.copy()
-        coord[2] += distBetweenBeads * npart   #TODO: Define the distance between the beads depending on the chosen potential
-        
-        spheres.append(Sphere(par['sigma'], coord, SphereType.BEAD))
+        coord[2] += distBetweenBeads * npart   
+
+        coordPBC = [c - 0.5*l for c, l in zip(coord, Lbox)]
+
+        for ax in range(3):
+            coordPBC[ax] -= Lbox[ax] * round(coordPBC[ax] / Lbox[ax])
+
+        spheres.append(Sphere(par['sigma_bead'], coordPBC, SphereType.BEAD))
+        atomList.addObjectToList(ID_start + npart - 1, coordPBC)
+
 
         f.write(f"{ID_start + npart} {molID} {beadType} {coord[0]} {coord[1]} {coord[2]}\n")
 
@@ -206,10 +303,17 @@ for p in range(0, int(par['npol'])):
         #Random position of the patch around the bead
         theta = np.random.rand() * 2. * m.pi
 
-        patchCoord[0] += m.cos(theta) * 0.5 * (par['sigma'] + par['sigma_patch'])
-        patchCoord[1] += m.sin(theta) * 0.5 * (par['sigma'] + par['sigma_patch'])
+        patchCoord[0] += m.cos(theta) * 0.5 * (par['sigma_bead'] + par['sigma_patch'])
+        patchCoord[1] += m.sin(theta) * 0.5 * (par['sigma_bead'] + par['sigma_patch'])
 
-        spheres.append(Sphere(par['sigma_patch'], patchCoord, SphereType.PATCH))
+        patchCoordPBC = [c - 0.5*l for c, l in zip(patchCoord, Lbox)]
+
+        for ax in range(3):
+            patchCoordPBC[ax] -= Lbox[ax] * round(patchCoordPBC[ax] / Lbox[ax])
+
+        spheres.append(Sphere(par['sigma_patch'], patchCoordPBC, SphereType.PATCH))
+
+        atomList.addObjectToList(patchID - 1, [c - 0.5*l for c, l in zip(patchCoordPBC, Lbox)])
 
         f.write(f"{patchID} {molID} {patchType} {patchCoord[0]} {patchCoord[1]} {patchCoord[2]}\n")
 
@@ -218,8 +322,6 @@ for p in range(0, int(par['npol'])):
         patchyBeadsIDs.append((ID_start + nparticle, patchID))
 
         patchID += 1
-
-
 
 
 # -----------> COLLOIDS <------------- #
@@ -239,26 +341,21 @@ if par['ncolloids'] > 0:
 
             overlap = False
 
-            colloid = Sphere(par['sigma_colloids'], (np.random.random() * Lbox[0],
-                            np.random.random() * Lbox[1],
-                            np.random.random() * Lbox[2]), SphereType.COLLOID)
+            colloid = Sphere(par['sigma_colloid'], (Lbox[0] * (-0.5 + np.random.random()),
+                            Lbox[1] * (-0.5 + np.random.random()),
+                            Lbox[2] * (-0.5 + np.random.random())), SphereType.COLLOID)
 
-            for sphere in spheres:
-
-                if sphere.overlap(colloid, Lbox):
-                    overlap = True
-                    break
-
-            if overlap == False:
+            if atomList.overlapCheck(colloid, spheres) == False:
                 break
 
+        spheres.append(colloid)
         
-        f.write(f"{collID} {molID} {colloidType} {colloid.cm[0]} {colloid.cm[1]} {colloid.cm[2]}\n")
+        atomList.addObjectToList(collID - 1, colloid.cm)
+        
+        f.write(f"{collID} {molID} {colloidType} {colloid.cm[0]+0.5*Lbox[0]} {colloid.cm[1]+0.5*Lbox[1]} {colloid.cm[2]+0.5*Lbox[2]}\n")
 
         collID += 1
         molID += 1
-
-        spheres.append(colloid)
 
 
 # -------------> SOLVENT <--------------------------- #
@@ -278,26 +375,21 @@ if par['nsolvent'] > 0:
 
             overlap = False
 
-            solvent = Sphere(par['sigma_solvent'], (np.random.random() * Lbox[0],
-                            np.random.random() * Lbox[1],
-                            np.random.random() * Lbox[2]), SphereType.SOLVENT)
+            solvent = Sphere(par['sigma_solvent'], (Lbox[0] * (-0.5 + np.random.random()),
+                            Lbox[1] * (-0.5 + np.random.random()),
+                            Lbox[2] * (-0.5 + np.random.random())), SphereType.SOLVENT)
 
-            for sphere in spheres:
-
-                if sphere.overlap(solvent, Lbox):
-                    overlap = True
-                    break
-
-            if overlap == False:
+            if atomList.overlapCheck(solvent, spheres) == False:
                 break
-
         
-        f.write(f"{solvID} {molID} {solventType} {solvent.cm[0]} {solvent.cm[1]} {solvent.cm[2]}\n")
+        spheres.append(solvent)
+
+        atomList.addObjectToList(solvID - 1, solvent.cm)
+        
+        f.write(f"{solvID} {molID} {solventType} {solvent.cm[0]+0.5*Lbox[0]} {solvent.cm[1]+0.5*Lbox[1]} {solvent.cm[2]+0.5*Lbox[2]}\n")
 
         solvID += 1
         molID += 1
-
-        spheres.append(solvent)
 
 
 f.write("\n")
@@ -362,6 +454,5 @@ for sphere in spheres:
     elif sphere.sphereType == SphereType.SOLVENT:
         letter = fakenames[solventType]
     f.write(f"{letter} {sphere.cm[0]} {sphere.cm[1]} {sphere.cm[2]}\n")
-
 
 f.close()

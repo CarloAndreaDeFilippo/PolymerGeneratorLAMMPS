@@ -51,7 +51,7 @@ if par['ncolloids'] > 0:
     atom_types += 1
     colloidType = atom_types
 
-
+#TODO: add epsilon values for all the combinations
 f = open("in.polymers", "w+")
 
 f.write("######################\n#   Initialization   #\n######################\n\n")
@@ -79,17 +79,17 @@ f.write("################\n#   Settings   #\n################\n\n")
 #*Spheres setup
 
 #Cut and shifted LJ potential at the minimum (mimic WCA potential)
-f.write(f"pair_style lj/cut {2**(1./6.) * par['sigma']}\n")
+f.write(f"pair_style lj/cut {2**(1./6.) * par['sigma_bead']}\n")
 f.write(f"pair_modify shift yes\n")
 
 #LJ interaction: type1 type2 epsilon sigma cutoff
 
 #Beads-beads interaction
-f.write(f"pair_coeff {beadType} {beadType} {par['eps']} {par['sigma']} {2**(1./6.) * par['sigma']}\n")   #! WCA
+f.write(f"pair_coeff {beadType} {beadType} {par['eps']} {par['sigma_bead']} {2**(1./6.) * par['sigma_bead']}\n")   #! WCA
 
 if par['nsolvent'] > 0:
     #Bead-solvent interaction
-    sigma_bead_solv = 0.5 * (par['sigma'] + par['sigma_solvent'])
+    sigma_bead_solv = 0.5 * (par['sigma_bead'] + par['sigma_solvent'])
     f.write(f"pair_coeff {beadType} {solventType} {par['eps']} {sigma_bead_solv} {2**(1./6.) * sigma_bead_solv}\n")   #! WCA
     
     #Solvent-solvent interaction
@@ -97,7 +97,7 @@ if par['nsolvent'] > 0:
 
 if par['npatch'] > 0:
     #Bead-patch interaction
-    sigma_bead_patch = 0.5 * (par['sigma'] + par['sigma_patch'])
+    sigma_bead_patch = 0.5 * (par['sigma_bead'] + par['sigma_patch'])
     f.write(f"pair_coeff {beadType} {patchType} {par['eps']} {sigma_bead_patch} {2**(1./6.) * sigma_bead_patch}\n")   #! WCA
     
     #Patch-patch interaction
@@ -111,20 +111,20 @@ if par['npatch'] > 0:
 
 if par['ncolloids'] > 0:
     #Bead-colloid interaction
-    sigma_bead_coll = 0.5 * (par['sigma'] + par['sigma_colloids'])
+    sigma_bead_coll = 0.5 * (par['sigma_bead'] + par['sigma_colloid'])
     f.write(f"pair_coeff {beadType} {colloidType} {par['eps_bc']} {sigma_bead_coll} {2.5 * sigma_bead_coll}\n")   #! LJ cut at 2.5 sigma_bead_coll
     
     #Colloid-colloid interaction
-    f.write(f"pair_coeff {colloidType} {colloidType} {par['eps']} {par['sigma_colloids']} {2**(1./6.) * par['sigma_colloids']}\n")    #! WCA
+    f.write(f"pair_coeff {colloidType} {colloidType} {par['eps']} {par['sigma_colloid']} {2**(1./6.) * par['sigma_colloid']}\n")    #! WCA
 
     if par['nsolvent'] > 0:
         #Colloid-solvent interaction
-        sigma_coll_solv = 0.5 * (par['sigma_colloids'] + par['sigma_solvent'])
+        sigma_coll_solv = 0.5 * (par['sigma_colloid'] + par['sigma_solvent'])
         f.write(f"pair_coeff {colloidType} {solventType} {par['eps_cs']} {sigma_coll_solv} {2.5 * sigma_coll_solv}\n")   #! LJ cut at 2.5 sigma_coll_solv
  
     if par['npatch'] > 0:
         #Colloid-patch interaction
-        sigma_coll_patch = 0.5 * (par['sigma_colloids'] + par['sigma_patch'])
+        sigma_coll_patch = 0.5 * (par['sigma_colloid'] + par['sigma_patch'])
         f.write(f"pair_coeff {colloidType} {patchType} {par['eps']} {sigma_coll_patch} {2**(1./6.) * sigma_coll_patch}\n")   #! WCA
     
 
@@ -139,11 +139,11 @@ f.write("bond_style fene\n")
 #FENE bond: bondID Kparameter MaxDistance LJeps sigma
 
 #Bond between beads
-f.write(f"bond_coeff 1 30.0 {1.5 * par['sigma']} {par['eps']} {par['sigma']}\n") 
+f.write(f"bond_coeff 1 30.0 {1.5 * par['sigma_bead']} {par['eps']} {par['sigma_bead']}\n") 
 
 if par['npatch'] > 0:
     #Bond between bead and patch
-    sigma_bead_patch = 0.5 * (par['sigma'] + par['sigma_patch'])
+    sigma_bead_patch = 0.5 * (par['sigma_bead'] + par['sigma_patch'])
     f.write(f"bond_coeff 2 30.0 {1.5 * sigma_bead_patch} {par['eps']} {sigma_bead_patch}\n")
 
     #Bond for the crosslink between patches
@@ -252,7 +252,9 @@ f.write("thermo_modify flush yes\n")
 
 #Create the crosslinks if there are patches in the system and the crosslink parameter is set to True (value != 0)
 if par['npatch'] > 0 and par['crosslink'] != 0:
-    f.write(f"fix createBonds all bond/create 1 {patchType} {patchType} {1 * par['sigma']} 3 iparam 1 2 jparam 1 2\n")
+    f.write(f"fix createBonds all bond/create 1 {patchType} {patchType} {1 * par['sigma_bead']} 3 iparam 1 2 jparam 1 2\n")
+
+f.write("minimize 1.0e-4 1.0e-6 100 1000\n") #Little energy minimization to stabilize initial configuration
 
 f.write(f"run {int(par['totsteps'])}\n")
 
