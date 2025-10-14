@@ -1,7 +1,7 @@
 npol 100
 ns 50
 npatch 5
-ncolloids 0
+ncolloids 10000
 nsolvent 50000
 sigma_bead 1
 sigma_patch 1
