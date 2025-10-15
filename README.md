@@ -41,7 +41,7 @@ The `generate_polymers.py` script creates a LAMMPS configuration file (`polymers
 
 The sizes of all spheres (polymer beads, solvent, colloids, etc.) can be tuned using the various `sigma_` parameters in the `par.txt` file.
 
-A linked-cell list is implemented to accelerate the random placement of spheres within the simulation box.
+A cell linked-list is implemented to accelerate the random placement of spheres within the simulation box.
 
 ### Input file
 The `generate_input.py` script generates the input file for LAMMPS:
