@@ -5,16 +5,19 @@ import re
 from os import listdir
 from os import makedirs, path, getcwd
 import errno
+import sys
 
-# Reading par.txt
+from core.parse_parameters import parseParameters
 
-par = {}
-par_file = 'par.txt'
+#Read parameter file name
+if len(sys.argv) != 2:
+    print("Specify the name of the parameter file")
+    sys.exit(1)
 
-with open(par_file) as f:
-    for line in f:
-        (key, val) = line.split()
-        par[key] = float(val)
+parFile = sys.argv[1]
+
+# Reading parameter file
+par = parseParameters(parFile)
 
 
 #Creation of the necessary directories

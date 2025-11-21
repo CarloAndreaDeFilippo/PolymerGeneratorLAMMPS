@@ -6,17 +6,17 @@ A Python-based tool to automatically generate [LAMMPS](https://github.com/lammps
 
 ## How to use the script
 
-1. Edit simulation parameters in `par.txt` (e.g., number of polymers, solvent, interaction strengths).
+1. Edit simulation parameters in `PARAMETER_FILE` (e.g., number of polymers, solvent, interaction strengths). An example `par.txt` is provided.
 2. Generate the configuration file:
 
 ```
-python3 generate_configuration.py
+python3 generate_configuration.py PARAMETER_FILE
 ```
 
 3. Create the corresponding LAMMPS input file:
    
 ```
-python3 generate_input.py
+python3 generate_input.py PARAMETER_FILE
 ```
 4. Run the simulation:
 
@@ -39,7 +39,7 @@ The `generate_polymers.py` script creates a LAMMPS configuration file (`polymers
 * `nsolvent`: number of solvent spheres placed randomly in the box. These interact with polymer beads via WCA and with other solvent atoms via Lennard-Jones potentials.
 * `ncolloids`: number of colloidal spheres representing additional crowders (LJ interaction with both polymer beads and solvent)
 
-The sizes of all spheres (polymer beads, solvent, colloids, etc.) can be tuned using the various `sigma_` parameters in the `par.txt` file.
+The sizes of all spheres (polymer beads, solvent, colloids, etc.) can be tuned using the various `sigma_` parameters in the `PARAMETER_FILE` file.
 
 A cell linked-list is implemented to accelerate the random placement of spheres within the simulation box.
 

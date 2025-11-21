@@ -3,18 +3,21 @@
 
 import numpy as np
 import math as m
+import sys
 
 from core.sphere import Sphere, SphereType
 from core.linked_cell_list import LinkedCellList
+from core.parse_parameters import parseParameters
 
-# Reading par.txt
-par = {}
-par_file = 'par.txt'
+#Read parameter file name
+if len(sys.argv) != 2:
+    print("Specify the name of the parameter file")
+    sys.exit(1)
 
-with open(par_file) as f:
-    for line in f:
-        (key, val) = line.split()
-        par[key] = float(val)
+parFile = sys.argv[1]
+
+# Reading parameter file
+par = parseParameters(parFile)
 
 Lbox = [par['lbox_x'], par['lbox_y'], par['lbox_z']]
 
