@@ -55,7 +55,7 @@ if par['ncolloids'] > 0:
     colloidType = atom_types
 
 #TODO: add epsilon values for all the combinations
-f = open("in.polymers", "w+")
+f = open(f"{par["inputFile"]}", "w+")
 
 f.write("######################\n#   Initialization   #\n######################\n\n")
 	  
@@ -74,7 +74,7 @@ if int(par['restart']) == 1:
     f.write("read_restart polymers.restart remap\n")
     f.write("\n")
 else:
-    f.write("read_data polymers.dat extra/special/per/atom 100\n") # da modificare per prendere parametri esterni
+    f.write(f"read_data {par["atomFile"]} extra/special/per/atom 100\n") # da modificare per prendere parametri esterni
     f.write("\n")
 
 f.write("################\n#   Settings   #\n################\n\n")

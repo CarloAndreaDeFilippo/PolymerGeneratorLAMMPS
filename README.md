@@ -6,7 +6,7 @@ A Python-based tool to automatically generate [LAMMPS](https://github.com/lammps
 
 ## How to use the script
 
-1. Edit simulation parameters in `PARAMETER_FILE` (e.g., number of polymers, solvent, interaction strengths). An example `par.txt` is provided.
+1. Edit simulation parameters in `PARAMETER_FILE` (e.g., number of polymers, solvent, interaction strengths). An example `par.json` is provided.
 2. Generate the configuration file:
 
 ```
@@ -21,19 +21,19 @@ python3 generate_input.py PARAMETER_FILE
 4. Run the simulation:
 
 ```
-lmp_serial -in in.polymers
+lmp_serial -in INPUT_FILE
 ```
 
 or, in parallel:
 
 ```
-mpirun -np NUM_THREADS lmp_mpi -in in.polymers
+mpirun -np NUM_THREADS lmp_mpi -in INPUT_FILE
 ```
 
 ## Simulation details
 
 ### Configuration file
-The `generate_polymers.py` script creates a LAMMPS configuration file (`polymers.dat`) containing:
+The `generate_polymers.py` script creates a LAMMPS configuration file (`atomFile` in json file) containing:
 * `npol`: number of self-avoiding polymers of equal length `ns` (WCA interaction between the beads)
 * `npatch`: number of additional patchy spheres on each polymer, placed randomly along the chain; these can be used to simulate crosslinking
 * `nsolvent`: number of solvent spheres placed randomly in the box. These interact with polymer beads via WCA and with other solvent atoms via Lennard-Jones potentials.
@@ -55,5 +55,5 @@ The `generate_input.py` script generates the input file for LAMMPS:
 ## Output files
 
 The scripts will give three files:
-* `generate_polymers.py` &#8594; `polymers.dat` (LAMMPS configuration) and `polymers.xyz` (viewable with [VMD](https://www.ks.uiuc.edu/Research/vmd/))
-* `generate_input.py` &#8594; `in.polymers` (LAMMPS input script)
+* `generate_polymers.py` &#8594; `atomFile` (LAMMPS configuration) and `polymers.xyz` (viewable with [VMD](https://www.ks.uiuc.edu/Research/vmd/))
+* `generate_input.py` &#8594; `inputFile` (LAMMPS input script)

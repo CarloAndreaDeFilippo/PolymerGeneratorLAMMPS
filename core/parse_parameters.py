@@ -1,9 +1,5 @@
-def parseParameters(parFile):
+import json
 
-    par = {}
-    with open(parFile) as f:
-        for line in f:
-            (key, val) = line.split()
-            par[key] = float(val)
-        
-    return par
+def parseParameters(jsonFile):
+    with open(jsonFile) as f:
+        return json.load(f)

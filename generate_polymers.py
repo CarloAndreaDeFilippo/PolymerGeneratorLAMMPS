@@ -37,7 +37,7 @@ spheres = []*ntot    #Container of all spherical particles in the system
 #polymer_ids = [tot_ids[x : x + ns] for x in range(0, len(tot_ids), ns)]
 
 
-f = open("polymers.dat", "w+")
+f = open(par["atomFile"], "w+")
 
 f.write("LAMMPS data file\n\n")
 
@@ -228,8 +228,6 @@ if par['ncolloids'] > 0:
 
         while True:
 
-            overlap = False
-
             colloid = Sphere(par['sigma_colloid'], (Lbox[0] * (-0.5 + np.random.random()),
                             Lbox[1] * (-0.5 + np.random.random()),
                             Lbox[2] * (-0.5 + np.random.random())), SphereType.COLLOID)
@@ -261,8 +259,6 @@ if par['nsolvent'] > 0:
         print(f'Solvent #{nc+1}')
 
         while True:
-
-            overlap = False
 
             solvent = Sphere(par['sigma_solvent'], (Lbox[0] * (-0.5 + np.random.random()),
                             Lbox[1] * (-0.5 + np.random.random()),
