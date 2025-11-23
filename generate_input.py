@@ -3,11 +3,12 @@
 
 import re
 from os import listdir
-from os import makedirs, path, getcwd
+from os import getcwd
 import errno
 import sys
 
 from core.parse_parameters import parseParameters
+from core.make_directories import makeDirectories
 
 #Read parameter file name
 if len(sys.argv) != 2:
@@ -19,22 +20,8 @@ parFile = sys.argv[1]
 # Reading parameter file
 par = parseParameters(parFile)
 
-
 #Creation of the necessary directories
-
-dir_list = ["configurations"]   
-
-main_dir = getcwd() + '/'
-
-for i in dir_list:
-
-    try:
-        makedirs(main_dir + i, 0o777)
-    except OSError as exc:
-        if exc.errno == errno.EEXIST and path.isdir(main_dir + i):
-            pass
-        else: raise
-
+makeDirectories([getcwd() + "/configurations"])
 
 atom_types = 1
 bond_types = 1
