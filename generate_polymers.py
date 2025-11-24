@@ -145,22 +145,8 @@ for p in range(0, int(par['npol'])):
 
     coordsFirstBeads.append(coordFirstBead)
 
-    patchyBeads = []        #List of the indexes of patch beads
-
-    for i in range(int(par['npatch'])):
-
-        while True:
-
-            patchyParticle = np.random.randint(par['ns'])
-
-            if patchyParticle not in patchyBeads:
-
-                patchyBeads.append(patchyParticle)
-                break
-    
-    #Sort the list to have the correct molID
-    patchyBeads.sort()
-
+    #List of the indexes of patch beads (sorted to have the correct molID)
+    patchyBeads = sorted(np.random.choice(par['ns'], size=par['npatch'], replace=False).tolist())
 
     #Place the beads
     for npart in range(int(par['ns'])):
@@ -175,7 +161,6 @@ for p in range(0, int(par['npol'])):
 
         spheres.append(Sphere(par['sigma_bead'], coordPBC, SphereType.BEAD))
         atomList.addObjectToList(ID_start + npart - 1, coordPBC)
-
 
         f.write(f"{ID_start + npart} {molID} {beadType} {coord[0]} {coord[1]} {coord[2]}\n")
 
