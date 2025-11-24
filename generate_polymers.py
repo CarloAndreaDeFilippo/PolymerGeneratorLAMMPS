@@ -22,12 +22,8 @@ par = parseParameters(parFile)
 Lbox = par["Lbox"]
 LboxHalf = [0.5 * L for L in Lbox]
 
-ntot = int(par['npol'] * (par['ns'] + par['npatch']) + par['nsolvent'])
+ntot = int(par['npol'] * (par['ns'] + par['npatch']) + par['nsolvent'] + par['ncolloids'])
 nbonds = int(par['npol'] * (par['ns'] - 1 + par['npatch']))
-
-if par['ncolloids'] > 0:
-
-    ntot += int(par['ncolloids'])
 
 # ids of all monomers
 tot_ids = list(range(1, ntot + 1))
@@ -104,9 +100,13 @@ distBetweenBeads = 1 * par['sigma_bead'] #TODO: Define the distance between the 
 
 patchyBeadsIDs = []         #List of tuples AtomID Bead + Patch to keep track of the IDs for the bonds
 
-for p in range(0, int(par['npol'])):
+npol = int(par['npol'])
 
-    print(f'Polymer #{p+1}')
+for p in range(npol):
+
+    percent = 100 * (p + 1) / npol
+    print(f"\rPolymer {p+1}/{npol}  ({percent:6.2f}%)", end="")
+
     #First bead of the polymers
     ID_start = int(1 + p * (par['ns'] + par['npatch']))
 
@@ -198,19 +198,21 @@ for p in range(0, int(par['npol'])):
 
         patchID += 1
 
+print()
 
 # -----------> COLLOIDS <------------- #
 
+ncoll = int(par['ncolloids'])
 
-if par['ncolloids'] > 0:
+if ncoll > 0:
 
     collID = int(1 + par['npol'] * (par['ns'] + par['npatch']))
     molID = int(1 + par['npol'])
 
-    for nc in range(int(par['ncolloids'])):
+    for nc in range(ncoll):
 
-
-        print(f'Colloid #{nc+1}')
+        percent = 100 * (nc + 1) / ncoll
+        print(f"\rColloid {nc+1}/{ncoll}  ({percent:6.2f}%)", end="")
 
         while True:
 
@@ -231,19 +233,23 @@ if par['ncolloids'] > 0:
         collID += 1
         molID += 1
 
+    print()
 
 # -------------> SOLVENT <--------------------------- #
 
-if par['nsolvent'] > 0:
+nsolv = int(par['nsolvent'])
+
+if nsolv > 0:
 
     solvID = int(1 + par['npol'] * (par['ns'] + par['npatch']) + par['ncolloids'])
     molID = int(1 + par['npol'] + par['ncolloids'])
 
     coordsSolvent = []
 
-    for nc in range(int(par['nsolvent'])):
+    for nc in range(nsolv):
 
-        print(f'Solvent #{nc+1}')
+        percent = 100 * (nc + 1) / nsolv
+        print(f"\rSolvent {nc+1}/{nsolv}  ({percent:6.2f}%)", end="")
 
         while True:
 
@@ -264,6 +270,7 @@ if par['nsolvent'] > 0:
         solvID += 1
         molID += 1
 
+    print()
 
 f.write("\n")
 
@@ -285,7 +292,7 @@ f.write("Bonds\n#bond-ID\tbond-type\tfirst-atom\tsecond-atom\n")
 ID_bond = 1
 
 #Bonds between the beads
-for p in range(0, int(par['npol'])):
+for p in range(npol):
 
     #First bead of the polymer
     ID_start = int(1 + p * (par['ns'] + par['npatch']))
