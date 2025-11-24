@@ -14,9 +14,11 @@
     "eps_ss": 0.5,
     "eps_bc": 1,
     "eps_cs": 1,
-    "lbox_x": 120,
-    "lbox_y": 120,
-    "lbox_z": 120,
+    "Lbox": [
+        120,
+        120,
+        120
+    ],
     "restart": 0,
     "press/berendsen": 1,
     "press_in": 5.0,

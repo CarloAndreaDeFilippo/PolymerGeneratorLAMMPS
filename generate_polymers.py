@@ -19,7 +19,8 @@ parFile = sys.argv[1]
 # Reading parameter file
 par = parseParameters(parFile)
 
-Lbox = [par['lbox_x'], par['lbox_y'], par['lbox_z']]
+Lbox = par["Lbox"]
+LboxHalf = [0.5 * L for L in Lbox]
 
 ntot = int(par['npol'] * (par['ns'] + par['npatch']) + par['nsolvent'])
 nbonds = int(par['npol'] * (par['ns'] - 1 + par['npatch']))
@@ -114,9 +115,9 @@ for p in range(0, int(par['npol'])):
     #Random coordinate of first bead (not overlapping with other polymers)
     while True:
 
-        coordFirstBead = [np.random.random() * par['lbox_x'],
-                            np.random.random() * par['lbox_y'],
-                            np.random.random() * par['lbox_z']]
+        coordFirstBead = [np.random.random() * Lbox[0],
+                            np.random.random() * Lbox[1],
+                            np.random.random() * Lbox[2]]
         
 
         overlap = False
@@ -126,10 +127,10 @@ for p in range(0, int(par['npol'])):
             dist_x = abs(coord[0] - coordFirstBead[0])
             dist_y = abs(coord[1] - coordFirstBead[1])
 
-            if dist_x >= 0.5 * Lbox[0]:
+            if dist_x >= LboxHalf[0]:
                 dist_x = dist_x - Lbox[0]
 
-            if dist_y >= 0.5 * Lbox[1]:
+            if dist_y >= LboxHalf[1]:
                 dist_y = dist_y - Lbox[1]
 
             distance2DSqrd = m.sqrt(dist_x*dist_x + dist_y*dist_y)
@@ -154,7 +155,7 @@ for p in range(0, int(par['npol'])):
         coord = coordFirstBead.copy()
         coord[2] += distBetweenBeads * npart   
 
-        coordPBC = [c - 0.5*l for c, l in zip(coord, Lbox)]
+        coordPBC = [c - hl for c, hl in zip(coord, LboxHalf)]
 
         for ax in range(3):
             coordPBC[ax] -= Lbox[ax] * round(coordPBC[ax] / Lbox[ax])
@@ -180,14 +181,14 @@ for p in range(0, int(par['npol'])):
         patchCoord[0] += m.cos(theta) * 0.5 * (par['sigma_bead'] + par['sigma_patch'])
         patchCoord[1] += m.sin(theta) * 0.5 * (par['sigma_bead'] + par['sigma_patch'])
 
-        patchCoordPBC = [c - 0.5*l for c, l in zip(patchCoord, Lbox)]
+        patchCoordPBC = [c - hl for c, hl in zip(patchCoord, LboxHalf)]
 
         for ax in range(3):
             patchCoordPBC[ax] -= Lbox[ax] * round(patchCoordPBC[ax] / Lbox[ax])
 
         spheres.append(Sphere(par['sigma_patch'], patchCoordPBC, SphereType.PATCH))
 
-        atomList.addObjectToList(patchID - 1, [c - 0.5*l for c, l in zip(patchCoordPBC, Lbox)])
+        atomList.addObjectToList(patchID - 1, [c - hl for c, hl in zip(patchCoordPBC, LboxHalf)])
 
         f.write(f"{patchID} {molID} {patchType} {patchCoord[0]} {patchCoord[1]} {patchCoord[2]}\n")
 
@@ -213,9 +214,10 @@ if par['ncolloids'] > 0:
 
         while True:
 
-            colloid = Sphere(par['sigma_colloid'], (Lbox[0] * (-0.5 + np.random.random()),
-                            Lbox[1] * (-0.5 + np.random.random()),
-                            Lbox[2] * (-0.5 + np.random.random())), SphereType.COLLOID)
+            colloid = Sphere(par['sigma_colloid'], 
+                             (np.random.uniform(-LboxHalf[0], LboxHalf[0]),
+                            np.random.uniform(-LboxHalf[1], LboxHalf[1]),
+                            np.random.uniform(-LboxHalf[2], LboxHalf[2])), SphereType.COLLOID)
 
             if atomList.overlapCheck(colloid, spheres) == False:
                 break
@@ -224,7 +226,7 @@ if par['ncolloids'] > 0:
         
         atomList.addObjectToList(collID - 1, colloid.cm)
         
-        f.write(f"{collID} {molID} {colloidType} {colloid.cm[0]+0.5*Lbox[0]} {colloid.cm[1]+0.5*Lbox[1]} {colloid.cm[2]+0.5*Lbox[2]}\n")
+        f.write(f"{collID} {molID} {colloidType} {colloid.cm[0]+LboxHalf[0]} {colloid.cm[1]+LboxHalf[1]} {colloid.cm[2]+LboxHalf[2]}\n")
 
         collID += 1
         molID += 1
@@ -245,9 +247,10 @@ if par['nsolvent'] > 0:
 
         while True:
 
-            solvent = Sphere(par['sigma_solvent'], (Lbox[0] * (-0.5 + np.random.random()),
-                            Lbox[1] * (-0.5 + np.random.random()),
-                            Lbox[2] * (-0.5 + np.random.random())), SphereType.SOLVENT)
+            solvent = Sphere(par['sigma_solvent'], 
+                            (np.random.uniform(-LboxHalf[0], LboxHalf[0]),
+                            np.random.uniform(-LboxHalf[1], LboxHalf[1]),
+                            np.random.uniform(-LboxHalf[2], LboxHalf[2])), SphereType.SOLVENT)
 
             if atomList.overlapCheck(solvent, spheres) == False:
                 break
@@ -256,7 +259,7 @@ if par['nsolvent'] > 0:
 
         atomList.addObjectToList(solvID - 1, solvent.cm)
         
-        f.write(f"{solvID} {molID} {solventType} {solvent.cm[0]+0.5*Lbox[0]} {solvent.cm[1]+0.5*Lbox[1]} {solvent.cm[2]+0.5*Lbox[2]}\n")
+        f.write(f"{solvID} {molID} {solventType} {solvent.cm[0]+LboxHalf[0]} {solvent.cm[1]+LboxHalf[1]} {solvent.cm[2]+LboxHalf[2]}\n")
 
         solvID += 1
         molID += 1
