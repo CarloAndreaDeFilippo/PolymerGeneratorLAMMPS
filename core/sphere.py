@@ -11,13 +11,22 @@ class SphereType(Enum):
 
 class Sphere:
 
-    def __init__(self, sigma=1, cm=(0., 0., 0.), sphereType=SphereType.GENERIC):
+    def __init__(
+            self, 
+            sigma: float = 1., 
+            cm : tuple[float, float, float] = (0., 0., 0.), 
+            sphereType: SphereType = SphereType.GENERIC,
+            atomID: int | None = None,
+            molID: int | None = None,
+            ):
         
         self.sigma = sigma
         self.cm = cm
         self.sphereType = sphereType
+        self.atomID = atomID
+        self.molID = molID
 
-    def distance(self, other, Lbox):
+    def distance(self, other, Lbox) -> float:
 
         dist = [0., 0., 0.]
 
@@ -27,10 +36,6 @@ class Sphere:
         
         return m.sqrt(dist[0]*dist[0] + dist[1]*dist[1] + dist[2]*dist[2])
 
-    def overlap(self, other, Lbox):
+    def overlap(self, other, Lbox) -> bool:
 
-        if self.distance(other, Lbox) <= 0.5 * (self.sigma + other.sigma):
-
-            return True
-
-        return False
+        return self.distance(other, Lbox) <= 0.5 * (self.sigma + other.sigma)
