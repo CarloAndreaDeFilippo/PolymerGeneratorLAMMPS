@@ -5,7 +5,7 @@ import numpy as np
 import math as m
 import sys
 
-from core.sphere import Sphere, SphereType
+from core.sphere import Sphere
 from core.linked_cell_list import LinkedCellList
 from core.parse_parameters import parseParameters
 
@@ -28,7 +28,7 @@ nbonds = int(par['npol'] * (par['ns'] - 1 + par['npatch']))
 # ids of all monomers
 tot_ids = list(range(1, ntot + 1))
 
-spheres = []*ntot    #Container of all spherical particles in the system
+spheres: list[Sphere] = []*ntot    #Container of all spherical particles in the system
 
 # split of tot_ids into single polymers
 #polymer_ids = [tot_ids[x : x + ns] for x in range(0, len(tot_ids), ns)]
@@ -86,6 +86,8 @@ f.write("\n")
 
 f.write("Atoms\n")
 f.write("# atom-ID\tmol-ID\tatom-type\tx\ty\tz\n")
+
+f.close()
 
 # -----------> POLYMERS <------------- #
 
@@ -160,10 +162,8 @@ for p in range(npol):
         for ax in range(3):
             coordPBC[ax] -= Lbox[ax] * round(coordPBC[ax] / Lbox[ax])
 
-        spheres.append(Sphere(par['sigma_bead'], coordPBC, SphereType.BEAD))
+        spheres.append(Sphere(par['sigma_bead'], coordPBC, ID_start + npart, molID, beadType))
         atomList.addObjectToList(ID_start + npart - 1, coordPBC)
-
-        f.write(f"{ID_start + npart} {molID} {beadType} {coord[0]} {coord[1]} {coord[2]}\n")
 
     
     #Place the patches
@@ -186,11 +186,9 @@ for p in range(npol):
         for ax in range(3):
             patchCoordPBC[ax] -= Lbox[ax] * round(patchCoordPBC[ax] / Lbox[ax])
 
-        spheres.append(Sphere(par['sigma_patch'], patchCoordPBC, SphereType.PATCH))
+        spheres.append(Sphere(par['sigma_patch'], patchCoordPBC, patchID, molID, patchType))
 
         atomList.addObjectToList(patchID - 1, [c - hl for c, hl in zip(patchCoordPBC, LboxHalf)])
-
-        f.write(f"{patchID} {molID} {patchType} {patchCoord[0]} {patchCoord[1]} {patchCoord[2]}\n")
 
         #Save the tuple AtomID of the bead + patch for the bond
 
@@ -219,7 +217,10 @@ if ncoll > 0:
             colloid = Sphere(par['sigma_colloid'], 
                              (np.random.uniform(-LboxHalf[0], LboxHalf[0]),
                             np.random.uniform(-LboxHalf[1], LboxHalf[1]),
-                            np.random.uniform(-LboxHalf[2], LboxHalf[2])), SphereType.COLLOID)
+                            np.random.uniform(-LboxHalf[2], LboxHalf[2])),
+                            collID,
+                            molID,
+                            colloidType)
 
             if atomList.overlapCheck(colloid, spheres) == False:
                 break
@@ -228,8 +229,6 @@ if ncoll > 0:
         
         atomList.addObjectToList(collID - 1, colloid.cm)
         
-        f.write(f"{collID} {molID} {colloidType} {colloid.cm[0]+LboxHalf[0]} {colloid.cm[1]+LboxHalf[1]} {colloid.cm[2]+LboxHalf[2]}\n")
-
         collID += 1
         molID += 1
 
@@ -256,7 +255,10 @@ if nsolv > 0:
             solvent = Sphere(par['sigma_solvent'], 
                             (np.random.uniform(-LboxHalf[0], LboxHalf[0]),
                             np.random.uniform(-LboxHalf[1], LboxHalf[1]),
-                            np.random.uniform(-LboxHalf[2], LboxHalf[2])), SphereType.SOLVENT)
+                            np.random.uniform(-LboxHalf[2], LboxHalf[2])),
+                            solvID,
+                            molID,
+                            solventType)
 
             if atomList.overlapCheck(solvent, spheres) == False:
                 break
@@ -265,14 +267,18 @@ if nsolv > 0:
 
         atomList.addObjectToList(solvID - 1, solvent.cm)
         
-        f.write(f"{solvID} {molID} {solventType} {solvent.cm[0]+LboxHalf[0]} {solvent.cm[1]+LboxHalf[1]} {solvent.cm[2]+LboxHalf[2]}\n")
-
         solvID += 1
         molID += 1
 
     print()
 
-f.write("\n")
+#Write atoms on file
+with open(par["atomFile"], "a") as f:
+
+    for sph in spheres:
+        f.write(f"{sph.atomID} {sph.molID} {sph.atomType} {sph.cm[0]+LboxHalf[0]} {sph.cm[1]+LboxHalf[1]} {sph.cm[2]+LboxHalf[2]}\n")
+
+    f.write("\n")
 
 
 # -----------> VELOCITIES <------------- # #*It is possible to specify the atoms velocities
@@ -286,53 +292,40 @@ f.write("\n")
 
 # -----------> BONDS <------------- #
 
-# Bond IDs
-f.write("Bonds\n#bond-ID\tbond-type\tfirst-atom\tsecond-atom\n")
+with open(par["atomFile"], "a") as f:
+    # Bond IDs
+    f.write("Bonds\n#bond-ID\tbond-type\tfirst-atom\tsecond-atom\n")
 
-ID_bond = 1
+    ID_bond = 1
 
-#Bonds between the beads
-for p in range(npol):
+    #Bonds between the beads
+    for p in range(npol):
 
-    #First bead of the polymer
-    ID_start = int(1 + p * (par['ns'] + par['npatch']))
+        #First bead of the polymer
+        ID_start = int(1 + p * (par['ns'] + par['npatch']))
 
-    for i in range(int(par['ns'] - 1)):
+        for i in range(int(par['ns'] - 1)):
 
-        atom_id = ID_start + i
+            atom_id = ID_start + i
 
-        f.write(f"{ID_bond} 1 {atom_id} {atom_id + 1}\n")
+            f.write(f"{ID_bond} 1 {atom_id} {atom_id + 1}\n")
 
+            ID_bond += 1
+
+
+    #Bonds between the bead and the patch
+    for BeadID,PatchID in patchyBeadsIDs:
+
+        f.write(f"{ID_bond} 2 {BeadID} {PatchID}\n")
         ID_bond += 1
 
 
-#Bonds between the bead and the patch
-for BeadID,PatchID in patchyBeadsIDs:
-
-    f.write(f"{ID_bond} 2 {BeadID} {PatchID}\n")
-    ID_bond += 1
-
-
-f.close()
-
 # -----------> .xyz for VMD visualization <------------- #
 
-f = open("polymers.xyz", "w+")
+namesVMD = {1: 'C', 2:'H', 3:'O', 4:'N'}
 
-f.write(f"{ntot}\n\n")
-
-fakenames = {1: 'C', 2:'H', 3:'O', 4:'N'}
-
-for sphere in spheres:
-
-    if sphere.sphereType == SphereType.BEAD:
-        letter = fakenames[beadType]
-    elif sphere.sphereType == SphereType.PATCH:
-        letter = fakenames[patchType]
-    elif sphere.sphereType == SphereType.COLLOID:
-        letter = fakenames[colloidType]
-    elif sphere.sphereType == SphereType.SOLVENT:
-        letter = fakenames[solventType]
-    f.write(f"{letter} {sphere.cm[0]} {sphere.cm[1]} {sphere.cm[2]}\n")
-
-f.close()
+with open("polymers.xyz", "w+") as f:
+    f.write(f"{ntot}\n\n")
+    for sphere in spheres:
+        letter = namesVMD[sphere.atomType]
+        f.write(f"{letter} {sphere.cm[0]} {sphere.cm[1]} {sphere.cm[2]}\n")

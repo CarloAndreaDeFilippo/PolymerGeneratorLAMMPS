@@ -1,30 +1,21 @@
-from enum import Enum, auto
 import math as m
-
-class SphereType(Enum):
-    GENERIC = auto()
-    BEAD = auto()
-    PATCH = auto()
-    COLLOID = auto()
-    SOLVENT = auto()
-
 
 class Sphere:
 
     def __init__(
             self, 
             sigma: float = 1., 
-            cm : tuple[float, float, float] = (0., 0., 0.), 
-            sphereType: SphereType = SphereType.GENERIC,
+            cm : tuple[float, float, float] = (0., 0., 0.),
             atomID: int | None = None,
             molID: int | None = None,
+            atomType: int | None = None,
             ):
         
         self.sigma = sigma
         self.cm = cm
-        self.sphereType = sphereType
         self.atomID = atomID
         self.molID = molID
+        self.atomType = atomType
 
     def distance(self, other, Lbox) -> float:
 
