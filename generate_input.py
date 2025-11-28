@@ -241,7 +241,7 @@ f.write("thermo_modify flush yes\n")
 #fix fixName groupID bond/create Nevery itype jtype Rmin bondtype prob p seed iparam maxbonds newitype jparam maxbonds newjtype
 
 #Create the crosslinks if there are patches in the system and the crosslink parameter is set to True (value != 0)
-if par['npatch'] > 0 and par['crosslink'] != 0:
+if par['npatch'] > 0 and par['crosslink'] == True:
     f.write(f"fix createBonds all bond/create 1 {patchType} {patchType} {1 * par['sigma_bead']} 3 iparam 1 2 jparam 1 2\n")
 
 f.write("minimize 1.0e-4 1.0e-6 100 1000\n") #Little energy minimization to stabilize initial configuration

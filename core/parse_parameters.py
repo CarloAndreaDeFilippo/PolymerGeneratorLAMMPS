@@ -1,5 +1,49 @@
 import json
+import os
 
-def parseParameters(jsonFile):
+defaultConfiguration = {
+    "atomFile": "polymers.dat",
+    "inputFile": "in.polymers",
+    "xyzFile": "polymers.xyz",
+    "npol": 100,
+    "ns": 50,
+    "npatch": 5,
+    "ncolloids": 10000,
+    "nsolvent": 50000,
+    "sigma_bead": 1,
+    "sigma_patch": 1,
+    "sigma_colloid": 1,
+    "sigma_solvent": 1,
+    "eps": 1,
+    "eps_ss": 0.5,
+    "eps_bc": 1,
+    "eps_cs": 1,
+    "Lbox": [
+        120,
+        120,
+        120
+    ],
+    "restart": 0,
+    "press/berendsen": 1,
+    "press_in": 5.0,
+    "press_fin": 5.0,
+    "totsteps": 3e7,
+    "dumpsteps": 1e3,
+    "thermosteps": 1e3,
+    "crosslink": False,
+    "saveXYZ" : True
+}
+
+def parseParameters(jsonFile: str) -> dict:
+
+    par = defaultConfiguration.copy()
+
+    if not os.path.exists(jsonFile):
+        print(f"[WARNING] JSON file '{jsonFile}' not found. Using defaults only.")
+        return par
+
     with open(jsonFile) as f:
-        return json.load(f)
+        config = json.load(f)
+        par.update(config)
+    
+    return par

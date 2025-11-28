@@ -1,6 +1,7 @@
 {
     "atomFile": "polymers.dat",
     "inputFile": "in.polymers",
+    "xyzFile": "polymers.xyz",
     "npol": 100,
     "ns": 50,
     "npatch": 5,
@@ -26,5 +27,6 @@
     "totsteps": 3e7,
     "dumpsteps": 1e3,
     "thermosteps": 1e3,
-    "crosslink": 0
+    "crosslink": false,
+    "saveXYZ": true
 }

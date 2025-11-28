@@ -322,10 +322,12 @@ with open(par["atomFile"], "a") as f:
 
 # -----------> .xyz for VMD visualization <------------- #
 
-namesVMD = {1: 'C', 2:'H', 3:'O', 4:'N'}
+if par["saveXYZ"] == True:
 
-with open("polymers.xyz", "w+") as f:
-    f.write(f"{ntot}\n\n")
-    for sphere in spheres:
-        letter = namesVMD[sphere.atomType]
-        f.write(f"{letter} {sphere.cm[0]} {sphere.cm[1]} {sphere.cm[2]}\n")
+    namesVMD = {1: 'C', 2:'H', 3:'O', 4:'N'}
+
+    with open(par["xyzFile"], "w+") as f:
+        f.write(f"{ntot}\n\n")
+        for sphere in spheres:
+            letter = namesVMD[sphere.atomType]
+            f.write(f"{letter} {sphere.cm[0]} {sphere.cm[1]} {sphere.cm[2]}\n")
