@@ -9,6 +9,8 @@ from core.sphere import Sphere
 from core.linked_cell_list import LinkedCellList
 from core.parse_parameters import parseParameters
 
+from core.save_xyz_file import saveXYZ
+
 #Read parameter file name
 if len(sys.argv) != 2:
     print("Specify the name of the parameter file")
@@ -25,11 +27,10 @@ LboxHalf = [0.5 * L for L in Lbox]
 ntot = int(par['npol'] * (par['ns'] + par['npatch']) + par['nsolvent'] + par['ncolloids'])
 nbonds = int(par['npol'] * (par['ns'] - 1 + par['npatch']))
 
-# ids of all monomers
-tot_ids = list(range(1, ntot + 1))
-
 spheres: list[Sphere] = []*ntot    #Container of all spherical particles in the system
 
+# ids of all monomers
+#tot_ids = list(range(1, ntot + 1))
 # split of tot_ids into single polymers
 #polymer_ids = [tot_ids[x : x + ns] for x in range(0, len(tot_ids), ns)]
 
@@ -47,23 +48,23 @@ bond_types = 1
 
 beadType = atom_types
 
-sigmas = [float(par['sigma_bead'])]  #list of spheres "sizes" for linked list
+sigmas = [par['sigma_bead']]  #list of spheres "sizes" for linked list
 
 if par['nsolvent'] > 0:
     atom_types += 1
     solventType = atom_types
-    sigmas.append(float(par['sigma_solvent']))
+    sigmas.append(par['sigma_solvent'])
 
 if par['npatch'] > 0:
     atom_types += 1
     bond_types += 2
     patchType = atom_types
-    sigmas.append(float(par['sigma_patch']))
+    sigmas.append(par['sigma_patch'])
 
 if par['ncolloids'] > 0:
     atom_types += 1
     colloidType = atom_types
-    sigmas.append(float(par['sigma_colloid']))
+    sigmas.append(par['sigma_colloid'])
 
 atomList = LinkedCellList(Lbox, max(sigmas), ntot)
 
@@ -243,8 +244,6 @@ if nsolv > 0:
     solvID = int(1 + par['npol'] * (par['ns'] + par['npatch']) + par['ncolloids'])
     molID = int(1 + par['npol'] + par['ncolloids'])
 
-    coordsSolvent = []
-
     for nc in range(nsolv):
 
         percent = 100 * (nc + 1) / nsolv
@@ -323,11 +322,4 @@ with open(par["atomFile"], "a") as f:
 # -----------> .xyz for VMD visualization <------------- #
 
 if par["saveXYZ"] == True:
-
-    namesVMD = {1: 'C', 2:'H', 3:'O', 4:'N'}
-
-    with open(par["xyzFile"], "w+") as f:
-        f.write(f"{ntot}\n\n")
-        for sphere in spheres:
-            letter = namesVMD[sphere.atomType]
-            f.write(f"{letter} {sphere.cm[0]} {sphere.cm[1]} {sphere.cm[2]}\n")
+    saveXYZ(par["xyzFile"], spheres)

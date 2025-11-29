@@ -2,9 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re
-from os import listdir
-from os import getcwd
-import errno
+from os import listdir, getcwd
 import sys
 
 from core.parse_parameters import parseParameters

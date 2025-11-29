@@ -3,3 +3,8 @@
 __pycache__/
 */__pycache__/
 **/__pycache__/
+
+# Ignore .xyz, .dat, and input in. files
+*.xyz
+*.dat
+in.*

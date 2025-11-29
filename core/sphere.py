@@ -5,7 +5,7 @@ class Sphere:
     def __init__(
             self, 
             sigma: float = 1., 
-            cm : tuple[float, float, float] = (0., 0., 0.),
+            cm : list[float, float, float] = [0., 0., 0.],
             atomID: int | None = None,
             molID: int | None = None,
             atomType: int | None = None,
