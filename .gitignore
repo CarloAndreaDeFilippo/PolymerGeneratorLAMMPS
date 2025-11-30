@@ -8,3 +8,8 @@ __pycache__/
 *.xyz
 *.dat
 in.*
+
+# Ignore LAMMPS-generated files
+
+configurations/*
+log.*
