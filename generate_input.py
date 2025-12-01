@@ -8,6 +8,14 @@ import sys
 from core.parse_parameters import parseParameters
 from core.make_directories import makeDirectories
 
+def minPositionLJ(sigma: float) -> float:
+    """Minimum of LJ to mimick WCA"""
+    return 2**(1.0/6.0) * sigma
+
+def maxDistanceInteractionLJ(sigma: float) -> float:
+    """Maxmimum distance interaction for LJ"""
+    return 2.5 * sigma
+
 #Read parameter file name
 if len(sys.argv) != 2:
     print("Specify the name of the parameter file")
@@ -67,53 +75,53 @@ f.write("################\n#   Settings   #\n################\n\n")
 #*Spheres setup
 
 #Cut and shifted LJ potential at the minimum (mimic WCA potential)
-f.write(f"pair_style lj/cut {2**(1./6.) * par['sigma_bead']}\n")
+f.write(f"pair_style lj/cut {minPositionLJ(par['sigma_bead'])}\n")
 f.write(f"pair_modify shift yes\n")
 
 #LJ interaction: type1 type2 epsilon sigma cutoff
 
 #Beads-beads interaction
-f.write(f"pair_coeff {beadType} {beadType} {par['eps']} {par['sigma_bead']} {2**(1./6.) * par['sigma_bead']}\n")   #! WCA
+f.write(f"pair_coeff {beadType} {beadType} {par['eps']} {par['sigma_bead']} {minPositionLJ(par['sigma_bead'])}\n")   #! WCA
 
 if par['nsolvent'] > 0:
     #Bead-solvent interaction
     sigma_bead_solv = 0.5 * (par['sigma_bead'] + par['sigma_solvent'])
-    f.write(f"pair_coeff {beadType} {solventType} {par['eps']} {sigma_bead_solv} {2**(1./6.) * sigma_bead_solv}\n")   #! WCA
+    f.write(f"pair_coeff {beadType} {solventType} {par['eps']} {sigma_bead_solv} {minPositionLJ(sigma_bead_solv)}\n")   #! WCA
     
     #Solvent-solvent interaction
-    f.write(f"pair_coeff {solventType} {solventType} {par['eps_ss']} {par['sigma_solvent']} {2.5 * par['sigma_solvent']}\n") #! LJ cut at 2.5 sigma_solvent
+    f.write(f"pair_coeff {solventType} {solventType} {par['eps_ss']} {par['sigma_solvent']} {maxDistanceInteractionLJ(par['sigma_solvent'])}\n") #! LJ cut
 
 if par['npatch'] > 0:
     #Bead-patch interaction
     sigma_bead_patch = 0.5 * (par['sigma_bead'] + par['sigma_patch'])
-    f.write(f"pair_coeff {beadType} {patchType} {par['eps']} {sigma_bead_patch} {2**(1./6.) * sigma_bead_patch}\n")   #! WCA
+    f.write(f"pair_coeff {beadType} {patchType} {par['eps']} {sigma_bead_patch} {minPositionLJ(sigma_bead_patch)}\n")   #! WCA
     
     #Patch-patch interaction
-    f.write(f"pair_coeff {patchType} {patchType} {par['eps']} {par['sigma_patch']} {2**(1./6.) * par['sigma_patch']}\n")   #! WCA
+    f.write(f"pair_coeff {patchType} {patchType} {par['eps']} {par['sigma_patch']} {minPositionLJ(par['sigma_patch'])}\n")   #! WCA
 
     if par['nsolvent'] > 0:
         #Patch-solvent
         sigma_patch_solv = 0.5 * (par['sigma_patch'] + par['sigma_solvent'])
-        f.write(f"pair_coeff {patchType} {solventType} {par['eps']} {sigma_patch_solv} {2**(1./6.) * sigma_patch_solv}\n")   #! WCA
+        f.write(f"pair_coeff {patchType} {solventType} {par['eps']} {sigma_patch_solv} {minPositionLJ(sigma_patch_solv)}\n")   #! WCA
 
 
 if par['ncolloids'] > 0:
     #Bead-colloid interaction
     sigma_bead_coll = 0.5 * (par['sigma_bead'] + par['sigma_colloid'])
-    f.write(f"pair_coeff {beadType} {colloidType} {par['eps_bc']} {sigma_bead_coll} {2.5 * sigma_bead_coll}\n")   #! LJ cut at 2.5 sigma_bead_coll
+    f.write(f"pair_coeff {beadType} {colloidType} {par['eps_bc']} {sigma_bead_coll} {maxDistanceInteractionLJ(sigma_bead_coll)}\n")   #! LJ cut
     
     #Colloid-colloid interaction
-    f.write(f"pair_coeff {colloidType} {colloidType} {par['eps']} {par['sigma_colloid']} {2**(1./6.) * par['sigma_colloid']}\n")    #! WCA
+    f.write(f"pair_coeff {colloidType} {colloidType} {par['eps']} {par['sigma_colloid']} {minPositionLJ(par['sigma_colloid'])}\n")    #! WCA
 
     if par['nsolvent'] > 0:
         #Colloid-solvent interaction
         sigma_coll_solv = 0.5 * (par['sigma_colloid'] + par['sigma_solvent'])
-        f.write(f"pair_coeff {colloidType} {solventType} {par['eps_cs']} {sigma_coll_solv} {2.5 * sigma_coll_solv}\n")   #! LJ cut at 2.5 sigma_coll_solv
+        f.write(f"pair_coeff {colloidType} {solventType} {par['eps_cs']} {sigma_coll_solv} {maxDistanceInteractionLJ(sigma_coll_solv)}\n")   #! LJ cut
  
     if par['npatch'] > 0:
         #Colloid-patch interaction
         sigma_coll_patch = 0.5 * (par['sigma_colloid'] + par['sigma_patch'])
-        f.write(f"pair_coeff {colloidType} {patchType} {par['eps']} {sigma_coll_patch} {2**(1./6.) * sigma_coll_patch}\n")   #! WCA
+        f.write(f"pair_coeff {colloidType} {patchType} {par['eps']} {sigma_coll_patch} {minPositionLJ(sigma_coll_patch)}\n")   #! WCA
     
 
 f.write("\n")

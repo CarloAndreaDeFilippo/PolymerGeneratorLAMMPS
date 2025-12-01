@@ -48,7 +48,7 @@ class ParticleSystem:
 
         self.max_sigma = max(self.sigma_bead, self.sigma_patch, self.sigma_solvent, self.sigma_colloid)
 
-        self.spheres: list[Sphere] = []*self.ntot
+        self.spheres: list[Sphere] = []
         self.atomList = LinkedCellList(self.Lbox, self.max_sigma, self.ntot)
 
         self.coordsFirstBeads = []
@@ -137,7 +137,7 @@ class ParticleSystem:
 
                 self.spheres.append(Sphere(self.sigma_patch, patchCoordPBC, self.atomID, self.molID, self.patchType))
 
-                self.atomList.addObjectToList(self.atomID - 1, [c - hl for c, hl in zip(patchCoordPBC, self.LboxHalf)])
+                self.atomList.addObjectToList(self.atomID - 1, patchCoordPBC)
 
                 #Save the tuple AtomID of the bead + patch for the bond
 
