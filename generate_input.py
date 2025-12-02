@@ -3,7 +3,7 @@
 
 import re
 from os import listdir, getcwd
-import sys
+import argparse
 
 from core.parse_parameters import parseParameters
 from core.make_directories import makeDirectories
@@ -16,12 +16,15 @@ def maxDistanceInteractionLJ(sigma: float) -> float:
     """Maxmimum distance interaction for LJ"""
     return 2.5 * sigma
 
-#Read parameter file name
-if len(sys.argv) != 2:
-    print("Specify the name of the parameter file")
-    sys.exit(1)
+parser = argparse.ArgumentParser(prog="generate_input.py")
+parser.add_argument(
+    "parameter_file",
+    help="Path to the parameter file (json)."
+)
 
-parFile = sys.argv[1]
+args = parser.parse_args()
+parFile = args.parameter_file
+
 
 # Reading parameter file
 par = parseParameters(parFile)
