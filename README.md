@@ -7,18 +7,27 @@ A Python-based tool to automatically generate [LAMMPS](https://github.com/lammps
 ## How to use the script
 
 1. Edit simulation parameters in `PARAMETER_FILE` (e.g., number of polymers, solvent, interaction strengths). An example `par.json` is provided.
-2. Generate the configuration file:
+2. - Option A: generate both configuration (.dat) and input (in.) files with a single command:
 
-```
-python3 generate_configuration.py PARAMETER_FILE
-```
+    ```
+    python3 main.py PARAMETER_FILE
+    ```
 
-3. Create the corresponding LAMMPS input file:
+    - Option B: generate the files separately.
+    
+    Generate the configuration file:
+
+    ```
+    python3 generate_configuration.py PARAMETER_FILE
+    ```
+
+    Create the corresponding LAMMPS input file:
    
-```
-python3 generate_input.py PARAMETER_FILE
-```
-4. Run the simulation:
+    ```
+    python3 generate_input.py PARAMETER_FILE
+    ```
+
+3. Run the simulation:
 
 ```
 lmp_serial -in INPUT_FILE
@@ -49,7 +58,7 @@ The `generate_input.py` script generates the input file for LAMMPS:
 * `totsteps`: total number of MD steps of the simulation
 * `thermosteps`: frequency of thermo output to the terminal
 * `dumpsteps`: frequency of saving trajectory snapshots to the ```.lammpstrj``` file
-* `crosslink`: switch on/off of the crosslinker interaction. If non-zero, two patches that approach within a threshold distance will form a permanent FENE bond.
+* `crosslink`: switch on/off of the crosslinker interaction. If set to true, two patches that approach within a threshold distance will form a permanent FENE bond.
 
 
 ## Output files

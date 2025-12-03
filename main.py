@@ -1,26 +1,13 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-from os import getcwd
 import argparse
 
-from core.parse_parameters import parseParameters
-from core.make_directories import makeDirectories
+from generate_polymers import generate_polymers
+from generate_input import generate_input
 
+from core.parse_parameters import parseParameters
 from core.particle_system import ParticleSystem
 
-def generate_input(partsys: ParticleSystem):
-
-    print("Generating input file...")
-
-    #Creation of the necessary directories
-    makeDirectories([getcwd() + "/configurations"])
-
-    partsys.writeInputFileLAMMPS()
-
-
 def main():
-
+    
     parser = argparse.ArgumentParser(prog="generate_input.py")
     parser.add_argument(
         "parameter_file",
@@ -32,6 +19,7 @@ def main():
 
     partsys = ParticleSystem(parseParameters(parFile))
 
+    generate_polymers(partsys)
     generate_input(partsys)
 
 if __name__ == "__main__":
