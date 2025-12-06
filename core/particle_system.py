@@ -151,64 +151,43 @@ class ParticleSystem:
         print()
 
 
-    #TODO: merge addColloids and addSolvent methods
-    def addColloids(self):
+    def addSpheres(self, nSpheres: int, sigma: float, sphereType: int, sphereName: str):
 
-        for nc in range(self.ncolloids):
+        for nc in range(nSpheres):
 
-            percent = 100 * (nc + 1) / self.ncolloids
-            print(f"\rColloid {nc+1}/{self.ncolloids}  ({percent:6.2f}%)", end="")
+            percent = 100 * (nc + 1) / nSpheres
+            print(f"\r{sphereName} {nc+1}/{nSpheres}  ({percent:6.2f}%)", end="")
 
             while True:
 
-                colloid = Sphere(self.sigma_colloid, 
+                sphere = Sphere(sigma, 
                                 (np.random.uniform(-self.LboxHalf[0], self.LboxHalf[0]),
                                 np.random.uniform(-self.LboxHalf[1], self.LboxHalf[1]),
                                 np.random.uniform(-self.LboxHalf[2], self.LboxHalf[2])),
                                 self.atomID,
                                 self.molID,
-                                self.colloidType)
+                                sphereType)
 
-                if self.atomList.overlapCheck(colloid, self.spheres) == False:
+                if self.atomList.overlapCheck(sphere, self.spheres) == False:
                     break
 
-            self.spheres.append(colloid)
+            self.spheres.append(sphere)
             
-            self.atomList.addObjectToList(self.atomID - 1, colloid.cm)
+            self.atomList.addObjectToList(self.atomID - 1, sphere.cm)
             
             self.atomID += 1
             self.molID += 1
 
         print()
+
+    def addColloids(self):
+
+        self.addSpheres(self.ncolloids, self.sigma_colloid, self.colloidType, "Colloid")
 
     def addSolvent(self):
 
-        for nc in range(self.nsolvent):
+        self.addSpheres(self.nsolvent, self.sigma_solvent, self.solventType, "Solvent")
 
-            percent = 100 * (nc + 1) / self.nsolvent
-            print(f"\rSolvent {nc+1}/{self.nsolvent}  ({percent:6.2f}%)", end="")
-
-            while True:
-
-                solvent = Sphere(self.sigma_solvent, 
-                                (np.random.uniform(-self.LboxHalf[0], self.LboxHalf[0]),
-                                np.random.uniform(-self.LboxHalf[1], self.LboxHalf[1]),
-                                np.random.uniform(-self.LboxHalf[2], self.LboxHalf[2])),
-                                self.atomID,
-                                self.molID,
-                                self.solventType)
-
-                if self.atomList.overlapCheck(solvent, self.spheres) == False:
-                    break
-            
-            self.spheres.append(solvent)
-
-            self.atomList.addObjectToList(self.atomID - 1, solvent.cm)
-            
-            self.atomID += 1
-            self.molID += 1
-
-        print()
     
     def writeConfigurationFileLAMMPS(self):
 
