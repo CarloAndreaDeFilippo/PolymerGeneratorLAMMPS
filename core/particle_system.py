@@ -35,20 +35,25 @@ class ParticleSystem:
         self.sigma_solvent = float(par["sigma_solvent"])
         self.sigma_colloid = float(par["sigma_colloid"])
 
+        sigmas = [self.sigma_bead]
+
         if self.nsolvent > 0:
             self.atom_types += 1
             self.solventType = self.atom_types
+            sigmas.append(self.sigma_solvent)
 
         if self.npatch > 0:
             self.atom_types += 1
             self.bond_types += 2
             self.patchType = self.atom_types
+            sigmas.append(self.sigma_patch)
 
         if self.ncolloids > 0:
             self.atom_types += 1
             self.colloidType = self.atom_types
+            sigmas.append(self.sigma_colloid)
 
-        self.max_sigma = max(self.sigma_bead, self.sigma_patch, self.sigma_solvent, self.sigma_colloid)
+        self.max_sigma = max(sigmas)
 
         self.spheres: list[Sphere] = []
         self.atomList = LinkedCellList(self.Lbox, self.max_sigma, self.ntot)
