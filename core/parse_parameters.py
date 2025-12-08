@@ -24,6 +24,7 @@ defaultConfiguration = {
         120
     ],
     "restart": 0,
+    "restartSteps": 250000,
     "press/berendsen": 1,
     "press_in": 5.0,
     "press_fin": 5.0,

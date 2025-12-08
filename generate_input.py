@@ -14,7 +14,7 @@ def generate_input(partsys: ParticleSystem):
     print("Generating input file...")
 
     #Creation of the necessary directories
-    makeDirectories([getcwd() + "/configurations"])
+    makeDirectories([getcwd() + "/configurations", getcwd() + "/restarts"])
 
     partsys.writeInputFileLAMMPS()
 

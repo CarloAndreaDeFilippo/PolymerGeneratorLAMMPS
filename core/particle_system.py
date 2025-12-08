@@ -1,7 +1,7 @@
 import numpy as np
 import math as m
 import re
-from os import listdir
+from os import listdir, path
 
 from .sphere import Sphere
 from .linked_cell_list import LinkedCellList
@@ -305,8 +305,12 @@ class ParticleSystem:
             f.write("#######################\n#   Atom definition   #\n#######################\n\n")
 
 
-            if int(self.par['restart']) == 1:  
-                f.write("read_restart polymers.restart remap\n")
+            if int(self.par['restart']) == 1:
+                restart_files = [f for f in listdir("restarts") if f.endswith(".restart")]
+                restart_paths = [path.join("restarts", f) for f in restart_files]
+                latestRestart = max(restart_paths, key=path.getsize)
+
+                f.write(f"read_restart {latestRestart} remap\n")
                 f.write("\n")
             else:
                 f.write(f"read_data {self.par["atomFile"]} extra/special/per/atom 100\n") # da modificare per prendere parametri esterni
@@ -408,7 +412,12 @@ class ParticleSystem:
             file_number = 0
 
             if int(self.par['restart']) == 1:
-                    file_number = int(re.search("[0-9]", [i for i in listdir("gyration") if "gyr" in i][0]).group()) + 1
+                    
+                    lammpsTrjFiles = [f for f in listdir("configurations") if "polymers" in f]
+
+                    numbers = [int(re.search(r"(\d+)", f).group(1)) for f in lammpsTrjFiles]
+
+                    file_number = max(numbers, default=-1) + 1
 
 
             #TODO: fix the computation of gyration radius for the polymers
@@ -470,7 +479,7 @@ class ParticleSystem:
             f.write("###########\n# Dumping #\n###########\n")
             f.write("\n")
 
-            f.write("restart 250000 polymers.restart polymers2.restart\n")  #LAMMPS restart files #TODO: read from parameter file the restart frequency
+            f.write(f"restart {int(self.par["restartSteps"])} restarts/polymers.restart restarts/polymers2.restart\n")  #LAMMPS restart files
             f.write("\n")
             f.write(f"dump config all custom {int(self.par['dumpsteps'])} configurations/polymers_{file_number}.lammpstrj id mol type x y z\n")
             f.write("\n")
