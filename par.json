@@ -7,10 +7,22 @@
     "npatch": 5,
     "ncolloids": 10000,
     "nsolvent": 50000,
-    "sigma_bead": 1,
-    "sigma_patch": 1,
-    "sigma_colloid": 1,
-    "sigma_solvent": 1,
+    "bead": {
+        "sigma": 1,
+        "mass": 1
+    },
+    "colloid": {
+        "sigma": 1,
+        "mass": 1
+    },
+    "solvent": {
+        "sigma": 1,
+        "mass": 0.5
+    },
+    "patch": {
+        "sigma": 1,
+        "mass": 1
+    },
     "eps": 1,
     "eps_ss": 0.5,
     "eps_bc": 1,
