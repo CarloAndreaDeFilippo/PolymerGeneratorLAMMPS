@@ -64,6 +64,8 @@ class ParticleSystem:
         self.atomID=1
         self.molID=1
 
+        self.rng = np.random.default_rng()
+
     def addPolymers(self):
 
         minPolymerDist = self.sigma_bead
@@ -75,8 +77,7 @@ class ParticleSystem:
 
         for p in range(self.npol):
 
-            percent = 100 * (p + 1) / self.npol
-            print(f"\rPolymer {p+1}/{self.npol}  ({percent:6.2f}%)", end="")
+            print(f"\rPolymer {p+1}/{self.npol}  ({100 * (p + 1) / self.npol:6.2f}%)", end="")
 
             #First bead of the polymers
             ID_start = int(1 + p * (self.ns + self.npatch))
@@ -84,7 +85,7 @@ class ParticleSystem:
             #Random coordinate of first bead (not overlapping with other polymers)
             while True:
 
-                coordFirstBead = [np.random.random() * l for l in self.Lbox]
+                coordFirstBead = [self.rng.random() * l for l in self.Lbox]
 
                 for coord in self.coordsFirstBeads:
 
@@ -106,7 +107,7 @@ class ParticleSystem:
             self.coordsFirstBeads.append(coordFirstBead)
 
             #List of the indexes of patch beads (sorted to have the correct molID)
-            patchyBeads = sorted(np.random.choice(self.ns, size=self.npatch, replace=False).tolist())
+            patchyBeads = sorted(self.rng.choice(self.ns, size=self.npatch, replace=False).tolist())
 
             #Place the beads
             for npart in range(self.ns):
@@ -132,7 +133,7 @@ class ParticleSystem:
                 patchCoord[2] += distBetweenBeads * nparticle
 
                 #Random position of the patch around the bead
-                theta = np.random.rand() * 2. * m.pi
+                theta = self.rng.random() * 2. * m.pi
 
                 patchCoord[0] += m.cos(theta) * 0.5 * (self.sigma_bead + self.sigma_patch)
                 patchCoord[1] += m.sin(theta) * 0.5 * (self.sigma_bead + self.sigma_patch)
@@ -160,15 +161,14 @@ class ParticleSystem:
 
         for nc in range(nSpheres):
 
-            percent = 100 * (nc + 1) / nSpheres
-            print(f"\r{sphereName} {nc+1}/{nSpheres}  ({percent:6.2f}%)", end="")
+            print(f"\r{sphereName} {nc+1}/{nSpheres}  ({100 * (nc + 1) / nSpheres:6.2f}%)", end="")
 
             while True:
 
                 sphere = Sphere(sigma, 
-                                (np.random.uniform(-self.LboxHalf[0], self.LboxHalf[0]),
-                                np.random.uniform(-self.LboxHalf[1], self.LboxHalf[1]),
-                                np.random.uniform(-self.LboxHalf[2], self.LboxHalf[2])),
+                                (self.rng.uniform(-self.LboxHalf[0], self.LboxHalf[0]),
+                                self.rng.uniform(-self.LboxHalf[1], self.LboxHalf[1]),
+                                self.rng.uniform(-self.LboxHalf[2], self.LboxHalf[2])),
                                 self.atomID,
                                 self.molID,
                                 sphereType)
@@ -234,7 +234,7 @@ class ParticleSystem:
 
             #f.write("Velocities\n\n")
 
-            #[f.write("{0} {1} {2} {3}\n".format(i, np.random.random() * 2., np.random.random()  * 2., np.random.random()  * 2. - 1.)) for i in range(1, ntot + 1)]
+            #[f.write("{0} {1} {2} {3}\n".format(i, self.rng.random() * 2., self.rng.random()  * 2., self.rng.random()  * 2. - 1.)) for i in range(1, ntot + 1)]
 
             #f.write("\n")
 
@@ -397,7 +397,7 @@ class ParticleSystem:
             #*Simulation environment setup
 
             f.write("fix 1 all nve\n")                             #NVE integrator (combined with Langevin thermostat gives NVT)
-            f.write("fix 2 all langevin 1.0 1.0 1.0 16113\n")      #Langevin thermostat (Tstart Tfin dampening seed)
+            f.write(f"fix 2 all langevin 1.0 1.0 1.0 {self.rng.integers(1, 10**9)}\n")      #Langevin thermostat (Tstart Tfin dampening seed)
 
             if self.par['press/berendsen'] > 0:
                 f.write(f"fix 3 all press/berendsen iso {self.par['press_in']} {self.par['press_fin']} 1000.0\n") #If NPT with Berendsen barostat
