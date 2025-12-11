@@ -44,7 +44,11 @@ defaultConfiguration = {
     "dumpsteps": 1e3,
     "thermosteps": 1e3,
     "crosslink": False,
-    "saveXYZ" : True
+    "saveXYZ" : True,
+    "randomVelocities":{
+        "enabled": False,
+        "maxMagnitude": [1, 1, 1]
+    }
 }
 
 def parseParameters(jsonFile: str) -> dict:

@@ -232,11 +232,15 @@ class ParticleSystem:
 
             # -----------> VELOCITIES <------------- # #*It is possible to specify the atoms velocities
 
-            #f.write("Velocities\n\n")
+            if self.par["randomVelocities"]["enabled"] == True:
 
-            #[f.write("{0} {1} {2} {3}\n".format(i, self.rng.random() * 2., self.rng.random()  * 2., self.rng.random()  * 2. - 1.)) for i in range(1, ntot + 1)]
+                v = self.par["randomVelocities"]["maxMagnitude"]
 
-            #f.write("\n")
+                f.write("Velocities\n\n")
+
+                [f.write(f"{i} {self.rng.random() * v[0]} {self.rng.random() * v[1]} {self.rng.random() * v[2]}\n") for i in range(1, self.ntot + 1)]
+
+                f.write("\n")
 
 
             # -----------> BONDS <------------- #
@@ -397,7 +401,7 @@ class ParticleSystem:
             #*Simulation environment setup
 
             f.write("fix 1 all nve\n")                             #NVE integrator (combined with Langevin thermostat gives NVT)
-            f.write(f"fix 2 all langevin 1.0 1.0 1.0 {self.rng.integers(1, 10**9)}\n")      #Langevin thermostat (Tstart Tfin dampening seed)
+            f.write(f"fix 2 all langevin 1.0 1.0 1.0 {self.rng.integers(1, 10**8)}\n")      #Langevin thermostat (Tstart Tfin dampening seed)
 
             if self.par['press/berendsen'] > 0:
                 f.write(f"fix 3 all press/berendsen iso {self.par['press_in']} {self.par['press_fin']} 1000.0\n") #If NPT with Berendsen barostat

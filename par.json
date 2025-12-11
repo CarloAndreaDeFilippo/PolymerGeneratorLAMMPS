@@ -41,5 +41,13 @@
     "dumpsteps": 1e3,
     "thermosteps": 1e3,
     "crosslink": false,
-    "saveXYZ": true
+    "saveXYZ": true,
+    "randomVelocities": {
+        "enabled": false,
+        "maxMagnitude": [
+            1,
+            1,
+            1
+        ]
+    }
 }
