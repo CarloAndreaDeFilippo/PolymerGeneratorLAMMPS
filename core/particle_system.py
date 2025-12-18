@@ -317,8 +317,12 @@ class ParticleSystem:
                 f.write(f"read_restart {latestRestart} remap\n")
                 f.write("\n")
             else:
-                f.write(f"read_data {self.par["atomFile"]} extra/special/per/atom 100\n") # da modificare per prendere parametri esterni
-                f.write("\n")
+                f.write(f"read_data {self.par["atomFile"]}")
+
+                if self.par['npatch'] > 0 and self.par['crosslink'] == True:
+                    f.write(" extra/special/per/atom 100")
+
+                f.write("\n\n")
 
             f.write("################\n#   Settings   #\n################\n\n")
 
