@@ -5,6 +5,7 @@ import argparse
 
 from core.parse_parameters import parseParameters
 from core.particle_system import ParticleSystem
+from core.write_lammps_configuration import writeLAMMPSConfiguration
 
 def generate_polymers(partsys: ParticleSystem):
 
@@ -14,7 +15,7 @@ def generate_polymers(partsys: ParticleSystem):
     partsys.addColloids()
     partsys.addSolvent()
 
-    partsys.writeConfigurationFileLAMMPS()
+    writeLAMMPSConfiguration(partsys)
 
     if partsys.par["saveXYZ"] == True:
         partsys.saveXYZfile()
