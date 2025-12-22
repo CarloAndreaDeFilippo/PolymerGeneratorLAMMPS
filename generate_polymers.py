@@ -6,6 +6,7 @@ import argparse
 from core.parse_parameters import parseParameters
 from core.particle_system import ParticleSystem
 from core.write_lammps_configuration import writeLAMMPSConfiguration
+from core.write_xyz_file import writeXYZfile
 
 def generate_polymers(partsys: ParticleSystem):
 
@@ -18,7 +19,7 @@ def generate_polymers(partsys: ParticleSystem):
     writeLAMMPSConfiguration(partsys)
 
     if partsys.par["saveXYZ"] == True:
-        partsys.saveXYZfile()
+        writeXYZfile(partsys)
 
 def main():
 

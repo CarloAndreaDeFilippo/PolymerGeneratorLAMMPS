@@ -8,6 +8,7 @@ from core.parse_parameters import parseParameters
 from core.make_directories import makeDirectories
 
 from core.particle_system import ParticleSystem
+from core.write_lammps_input import writeInputFileLAMMPS
 
 def generate_input(partsys: ParticleSystem):
 
@@ -16,7 +17,7 @@ def generate_input(partsys: ParticleSystem):
     #Creation of the necessary directories
     makeDirectories([getcwd() + "/configurations", getcwd() + "/restarts"])
 
-    partsys.writeInputFileLAMMPS()
+    writeInputFileLAMMPS(partsys)
 
 
 def main():
